@@ -10,6 +10,9 @@ dash = "*"
 pandas = "*"
 ipykernel = "*"
 obsidiantools = "*"
+mistune = "*"
+pypandoc = "*"
+markdown-it-py = {extras = ["plugins", "linkify"], version = "*"}
 
 [dev-packages]
 
