@@ -1,11 +1,15 @@
-from mistune.plugins.task_lists import task_lists
-import mistune
+# from mistune.plugins.task_lists import task_lists
+# import mistune
+# import markdown as md
+from markdown_it import MarkdownIt
 import pypandoc
 import json
 from bs4 import BeautifulSoup
 from itertools import chain
 
-markdown = mistune.create_markdown(plugins=['task_lists'])
+# markdown = mistune.create_markdown(plugins=['task_lists'])
+# mdx = md.Markdown(extensions=['pymdownx.tasklist'])
+md = MarkdownIt()
 
 
 def parse_note_via_html(note, vault):
@@ -13,7 +17,9 @@ def parse_note_via_html(note, vault):
     note_path = VAULT_LOC / vault.md_file_index[note]
     with open(note_path, 'r', encoding="utf8") as f:
         text = f.read()
-    html = markdown(text)
+    # html = markdown(text)
+    # html = md.markdown(text, extensions=['pymdownx.task_lists'])
+    html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
     return parse_html_for_tasks(soup)
 
@@ -31,7 +37,7 @@ def parse_html_for_tasks(elem):
                                                  for child in elem.children))
 
     # If the current node is a required task type, include it
-    if elem.name == "li" and 'task-list-item' in elem.attrs['class']:
+    if elem.name == "li" and elem.text.startswith('['):
         return convert_to_task(elem, filtered_children)
     else:
         return filtered_children

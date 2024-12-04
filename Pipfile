@@ -14,6 +14,8 @@ mistune = "*"
 pypandoc = "*"
 markdown-it-py = {extras = ["plugins", "linkify"], version = "*"}
 beautifulsoup4 = "*"
+markdown = "*"
+pymdown-extensions = "*"
 
 [dev-packages]
 
