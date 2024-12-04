@@ -44,7 +44,25 @@ def convert_to_task(elem, children=[]):
     :param elem: A HTML element to be converted into a task.
     :return: A task object.
     """
-    pass
+    task = {}
+    task['text'] = elem.text  # storing raw text
+    
+    task['tags'] = [word.strip('#') for word in task['text'].split() 
+                    if word.startswith('#')]
+    
+    task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
+    if len(task_types) == 1:
+        task['type'] = task_types[0]
+    elif len(task_types) == 0:
+        task['type'] = 'todo'
+    else:
+        raise ValueError(f"Multiple task types found: {task_types}")
+    
+    # TODO: Add the required fields - status, priority,
+    # done date, scheduled date, due date, created date, start date, cancelled 
+    # date etc.
+    # TODO: Add additional fields if required - description
+    task['children'] = children
 
 
 def parse_note_via_json(note, vault):
