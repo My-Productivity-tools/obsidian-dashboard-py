@@ -13,6 +13,7 @@ obsidiantools = "*"
 mistune = "*"
 pypandoc = "*"
 markdown-it-py = {extras = ["plugins", "linkify"], version = "*"}
+beautifulsoup4 = "*"
 
 [dev-packages]
 
