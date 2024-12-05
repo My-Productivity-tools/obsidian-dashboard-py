@@ -1,14 +1,10 @@
-# from mistune.plugins.task_lists import task_lists
-# import mistune
-# import markdown as md
 from markdown_it import MarkdownIt
 import pypandoc
 import json
 from bs4 import BeautifulSoup
 from itertools import chain
+import json
 
-# markdown = mistune.create_markdown(plugins=['task_lists'])
-# mdx = md.Markdown(extensions=['pymdownx.tasklist'])
 md = MarkdownIt()
 
 
@@ -17,11 +13,12 @@ def parse_note_via_html(note, vault):
     note_path = VAULT_LOC / vault.md_file_index[note]
     with open(note_path, 'r', encoding="utf8") as f:
         text = f.read()
-    # html = markdown(text)
-    # html = md.markdown(text, extensions=['pymdownx.task_lists'])
     html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
-    return parse_html_for_tasks(soup)
+    tasks = parse_html_for_tasks(soup)
+    with open('tasks.json', 'w') as f:
+        json.dump(tasks, f, indent=4, separators=(',', ': '))
+    return tasks
 
 
 def parse_html_for_tasks(elem):
