@@ -51,9 +51,9 @@ def convert_to_task(elem, children=[]):
     :return: A task object.
     """
     task = {}
-    task['text'] = elem.text  # storing raw text
+    task['raw_text'] = elem.text  # storing raw text
     
-    task['tags'] = [word.strip('#') for word in task['text'].split() 
+    task['tags'] = [word.strip('#') for word in task['raw_text'].split() 
                     if word.startswith('#')]
     
     task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
@@ -64,11 +64,27 @@ def convert_to_task(elem, children=[]):
     else:
         raise ValueError(f"Multiple task types found: {task_types}")
     
-    # TODO: Add the required fields - status, priority,
+    
+    for child in elem.find_all():
+        if child.name not in ['a', 'span', 'strong']:
+            child.decompose()
+    text = elem.get_text(strip=True)
+    task['title'] = text[3:].strip()
+    status_map = {
+        '[ ]': 'Todo',
+        '[x]': 'Done',
+        '[/]': 'In Progress',
+        '[-]': 'Cancelled', 
+        '[|]': 'Blocked', 
+    }
+    task['status'] = status_map.get(text[:3], None)
+    
+    # TODO: Add the required fields - priority,
     # done date, scheduled date, due date, created date, start date, cancelled 
     # date etc.
     # TODO: Add additional fields if required - description
     task['children'] = children
+    return task
 
 
 def parse_note_via_json(note, vault):
