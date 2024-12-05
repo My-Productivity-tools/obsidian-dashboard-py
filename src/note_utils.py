@@ -13,7 +13,7 @@ md = MarkdownIt()
 
 
 def parse_note_via_html(note, vault):
-    note = '2024 Oct'
+    note = 'Deep Learning'
     note_path = VAULT_LOC / vault.md_file_index[note]
     with open(note_path, 'r', encoding="utf8") as f:
         text = f.read()
@@ -34,7 +34,7 @@ def parse_html_for_tasks(elem):
     """
     # Filter the children recursively
     filtered_children = list(chain.from_iterable(parse_html_for_tasks(child) 
-                                                 for child in elem.children))
+                                                 for child in elem.findChildren(recursive=False)))
 
     # If the current node is a required task type, include it
     if elem.name == "li" and elem.text.startswith('['):
