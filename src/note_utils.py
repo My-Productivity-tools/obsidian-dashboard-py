@@ -9,17 +9,12 @@ import re
 md = MarkdownIt()
 
 
-def parse_note_via_html(note, vault):
-    note = 'Deep Learning'
-    note_path = VAULT_LOC / vault.md_file_index[note]
+def parse_note_via_html(note_path):
     with open(note_path, 'r', encoding="utf-8") as f:
         text = f.read()
     html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
-    tasks = parse_html_for_tasks(soup)
-    with open('tasks.json', 'w', encoding='utf-8') as f:
-        json.dump(tasks, f, indent=4, separators=(',', ': '))
-    return tasks
+    return parse_html_for_tasks(soup)
 
 
 def parse_html_for_tasks(elem):
@@ -116,20 +111,6 @@ def convert_to_task(elem, children=[]):
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
     
-    # TODO: Add Dataview fields - okr, Story Points, duration etc. 
     # TODO: Add additional fields if required - description
     task['children'] = children
     return task
-
-
-def parse_note_via_json(note, vault):
-    note = '2024 Oct'
-    note_path = VAULT_LOC / vault.md_file_index[note]
-    text_dict = json.loads(pypandoc.convert_file(note_path, to='json'))
-
-
-def parse_note_via_text(note, vault):
-    note = '2024 Oct'
-    note_path = VAULT_LOC / vault.md_file_index[note]
-    text = vault.get_source_text(note)  # Doesn't identify bullet points as separate lines
-    lines = [line for line in text.split('\n') if line.strip()]
