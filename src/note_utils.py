@@ -70,23 +70,28 @@ def convert_to_task(elem, children=[]):
         '\\ud83d\\udd3a': 'Highest'
     }
     dates_map = {
-        '\\u2795': 'Created', 
-        '\\ud83d\\udeeb': 'Start', 
-        '\\u23f3': 'Scheduled', 
-        '\\ud83d\\udcc5': 'Due', 
-        '\\u2705': 'Done', 
-        '\\u274c': 'Cancelled'
+        '\\u2795': 'Created Date', 
+        '\\ud83d\\udeeb': 'Started Date', 
+        '\\u23f3': 'Scheduled Date', 
+        '\\ud83d\\udcc5': 'Due Date', 
+        '\\u2705': 'Done Date', 
+        '\\u274c': 'Cancelled Date'
     }
     task['status'] = status_map.get(text[:3], None)
 
     task['tags'] = [word.strip('#') for word in task['title'].split() 
                     if word.startswith('#')]
-    task['fields'] = [word for word in json.dumps(task['title']).strip('"')
-                      .split() if word.startswith('\\u')]
+    title_words = json.dumps(task['title']).strip('"').split()
+    task['fields'] = [word for word in title_words if word.startswith('\\u')]
     
     priority = [priority_map.get(field) for field in task['fields'] 
                 if field in priority_map]
     task['priority'] = priority[0] if priority else None
+
+    date_fields_utf = [field for field in task['fields'] if field in dates_map]
+    for date_field in date_fields_utf:
+        task[dates_map.get(date_field)] = title_words[title_words.index(date_field)+1]
+    
     
     task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
     if len(task_types) == 1:
@@ -97,9 +102,9 @@ def convert_to_task(elem, children=[]):
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
     
-    # TODO: Add the required fields - priority,
-    # done date, scheduled date, due date, created date, start date, cancelled 
-    # date etc.
+    # TODO: Add the required fields - done date, scheduled date, due date, 
+    # created date, start date, cancelled date etc.
+    # TODO: Add Dataview fields - okr, Story Points, duration etc. 
     # TODO: Add additional fields if required - description
     task['children'] = children
     return task
