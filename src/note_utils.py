@@ -38,7 +38,7 @@ def parse_html_for_tasks(elem):
 
     # If the current node is a required task type, include it
     if elem.name == "li" and elem.text.startswith('['):
-        return convert_to_task(elem, filtered_children)
+        return [convert_to_task(elem, filtered_children)]
     else:
         return filtered_children
 
@@ -52,23 +52,11 @@ def convert_to_task(elem, children=[]):
     """
     task = {}
     task['raw_text'] = elem.text  # storing raw text
-    
-    task['tags'] = [word.strip('#') for word in task['raw_text'].split() 
-                    if word.startswith('#')]
-    
-    task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
-    if len(task_types) == 1:
-        task['type'] = task_types[0]
-    elif len(task_types) == 0:
-        task['type'] = 'todo'
-    else:
-        raise ValueError(f"Multiple task types found: {task_types}")
-    
-    
+        
     for child in elem.find_all():
         if child.name not in ['a', 'span', 'strong']:
             child.decompose()
-    text = elem.get_text(strip=True)
+    text = elem.get_text()
     task['title'] = text[3:].strip()
     status_map = {
         '[ ]': 'Todo',
@@ -78,6 +66,18 @@ def convert_to_task(elem, children=[]):
         '[|]': 'Blocked', 
     }
     task['status'] = status_map.get(text[:3], None)
+
+    task['tags'] = [word.strip('#') for word in task['title'].split() 
+                    if word.startswith('#')]
+    
+    task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
+    if len(task_types) == 1:
+        task['type'] = task_types[0]
+    elif len(task_types) == 0:
+        task['type'] = 'todo'
+    else:
+        print(elem)
+        raise ValueError(f"Multiple task types found: {task_types}")
     
     # TODO: Add the required fields - priority,
     # done date, scheduled date, due date, created date, start date, cancelled 
