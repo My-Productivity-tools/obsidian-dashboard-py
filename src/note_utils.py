@@ -93,10 +93,19 @@ def convert_to_task(elem, children=[]):
     for date_field in date_fields_utf:
         task[dates_map.get(date_field)] = title_words[title_words.index(date_field)+1]
     
-    dv_pattern = r'\[(.+)::(.+)\]'
-    dv_matches = re.findall(dv_pattern, task['title'])
-    for match in dv_matches:
+    pattern_okr = r'\(([a-zA-Z\s]+)::(.+)\)'
+    matches_okr = re.findall(pattern_okr, task['title'])
+    for match in matches_okr:
         task[match[0].strip()] = match[1].strip()
+    task['title'] = re.sub(pattern_okr, '', task['title']).strip()
+
+    pattern_dv = r'[\[\(]([a-zA-Z\s]+)::(.+)[\]\)]'
+    matches_dv = re.findall(pattern_dv, task['title'])
+    for match in matches_dv:
+        key, val = match[0].strip(), match[1].strip()
+        if key in ['Story Points', 'Duration']:
+            val = float(val)
+        task[key] = val
 
     task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
     if len(task_types) == 1:
