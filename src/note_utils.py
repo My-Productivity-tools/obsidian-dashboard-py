@@ -4,6 +4,7 @@ import json
 from bs4 import BeautifulSoup
 from itertools import chain
 import json
+import re
 
 md = MarkdownIt()
 
@@ -92,7 +93,11 @@ def convert_to_task(elem, children=[]):
     for date_field in date_fields_utf:
         task[dates_map.get(date_field)] = title_words[title_words.index(date_field)+1]
     
-    
+    dv_pattern = r'\[(.+)::(.+)\]'
+    dv_matches = re.findall(dv_pattern, task['title'])
+    for match in dv_matches:
+        task[match[0].strip()] = match[1].strip()
+
     task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
     if len(task_types) == 1:
         task['type'] = task_types[0]
@@ -102,8 +107,6 @@ def convert_to_task(elem, children=[]):
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
     
-    # TODO: Add the required fields - done date, scheduled date, due date, 
-    # created date, start date, cancelled date etc.
     # TODO: Add Dataview fields - okr, Story Points, duration etc. 
     # TODO: Add additional fields if required - description
     task['children'] = children
