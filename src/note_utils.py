@@ -11,12 +11,12 @@ md = MarkdownIt()
 def parse_note_via_html(note, vault):
     note = 'Deep Learning'
     note_path = VAULT_LOC / vault.md_file_index[note]
-    with open(note_path, 'r', encoding="utf8") as f:
+    with open(note_path, 'r', encoding="utf-8") as f:
         text = f.read()
     html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
     tasks = parse_html_for_tasks(soup)
-    with open('tasks.json', 'w') as f:
+    with open('tasks.json', 'w', encoding='utf-8') as f:
         json.dump(tasks, f, indent=4, separators=(',', ': '))
     return tasks
 
@@ -62,10 +62,31 @@ def convert_to_task(elem, children=[]):
         '[-]': 'Cancelled', 
         '[|]': 'Blocked', 
     }
+    priority_map = {  # Normal priority is when no symbol is specified
+        '\\u23ec': 'Lowest', 
+        '\\ud83d\\udd3d': 'Low', 
+        '\\ud83d\\udd3c': 'Medium', 
+        '\\u23eb': 'High', 
+        '\\ud83d\\udd3a': 'Highest'
+    }
+    dates_map = {
+        '\\u2795': 'Created', 
+        '\\ud83d\\udeeb': 'Start', 
+        '\\u23f3': 'Scheduled', 
+        '\\ud83d\\udcc5': 'Due', 
+        '\\u2705': 'Done', 
+        '\\u274c': 'Cancelled'
+    }
     task['status'] = status_map.get(text[:3], None)
 
     task['tags'] = [word.strip('#') for word in task['title'].split() 
                     if word.startswith('#')]
+    task['fields'] = [word for word in json.dumps(task['title']).strip('"')
+                      .split() if word.startswith('\\u')]
+    
+    priority = [priority_map.get(field) for field in task['fields'] 
+                if field in priority_map]
+    task['priority'] = priority[0] if priority else None
     
     task_types = [tag for tag in task['tags'] if tag in ['epic', 'story', 'task']]
     if len(task_types) == 1:
