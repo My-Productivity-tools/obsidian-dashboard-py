@@ -17,7 +17,7 @@ def parse_note_via_html(note_path):
     return parse_html_for_tasks(soup)
 
 
-def parse_html_for_tasks(elem):
+def parse_html_for_tasks(elem, okr=None):
     """
     Recursively filters the element tree to retain only the required tasks 
     while retaining the tree structure.
@@ -26,17 +26,30 @@ def parse_html_for_tasks(elem):
     :return: A new HTML element tree with only the required tasks.
     """
     # Filter the children recursively
-    filtered_children = list(chain.from_iterable(parse_html_for_tasks(child) 
-                                                 for child in elem.findChildren(recursive=False)))
+    filtered_children = list(
+        chain.from_iterable(parse_html_for_tasks(child) for child in 
+                            elem.findChildren(recursive=False)))
+    filtered_children_okr = list(
+        chain.from_iterable(parse_html_for_tasks(child, okr) for child in 
+                            elem.findChildren(recursive=False)))
 
     # If the current node is a required task type, include it
     if elem.name == "li" and elem.text.startswith('['):
-        return [convert_to_task(elem, filtered_children)]
+        task = convert_to_task(elem)
+        task['children'] = filtered_children
+        if okr is not None:
+            if 'okr' in task and task['okr'] == okr:
+                # Children need not be marked for OKR if the parent is
+                return [task]
+            else:
+                return filtered_children_okr
+        else:
+            return [task]
     else:
-        return filtered_children
+        return filtered_children_okr
 
 
-def convert_to_task(elem, children=[]):
+def convert_to_task(elem):
     """
     Converts a HTML element into a task object.
 
@@ -112,5 +125,4 @@ def convert_to_task(elem, children=[]):
         raise ValueError(f"Multiple task types found: {task_types}")
     
     # TODO: Add additional fields if required - description
-    task['children'] = children
     return task
