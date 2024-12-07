@@ -19,8 +19,8 @@ def get_okr_data(okr_note, vault):
     start_date = front_matter['start_date']
     end_date = front_matter['end_date']
 
-    okr_list = parse_okr_note(okr_note, vault)
-    return get_kr_data(okr_list, vault)
+    okr_info = parse_okr_note(okr_note, vault)
+    return get_kr_data(okr_info, vault)
 
 
 def parse_okr_note(okr_note, vault):
@@ -30,20 +30,23 @@ def parse_okr_note(okr_note, vault):
         text = f.read()
     html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
-    
+
     # Get the Objectives
     o_pattern = r'(O\d+):(.+)'
-    o_matches = [re.search(o_pattern, e.text) 
-               for e in soup.findAll('h1', recursive=False)]
+    o_matches = [re.search(o_pattern, e.text)
+                 for e in soup.findAll('h1', recursive=False)]
     okr_info = {m[1].strip(): {'name': m[2].strip(), 'kr_info': {}} for m in o_matches}
-    
+
     # Get the Key Results
     kr_pattern = r'(O\d+)\s(KR\d+):(.+)'
-    kr_matches = [re.search(kr_pattern, e.text) 
-               for e in soup.findAll('h3', recursive=False)]
+    kr_matches = [re.search(kr_pattern, e.text)
+                  for e in soup.findAll('h3', recursive=False)]
     for match in kr_matches:
-        okr_info[match[1]]['kr_info'][match[2]] = match[3].strip()
-    
+        okr_info[match[1]]['kr_info'][match[2]] = {
+            'name': match[3].strip(),
+            'okr_tag': '[[' + okr_note + '#' + match[0].replace(':', '')
+                       .replace('[', '').replace(']', '') + ']]'
+        }
     return okr_info
 
 
