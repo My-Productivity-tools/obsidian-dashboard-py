@@ -5,19 +5,22 @@ from bs4 import BeautifulSoup
 from itertools import chain
 import json
 import re
+from treelib import Node, Tree
 
 md = MarkdownIt()
 
 
-def parse_note_via_html(note_path):
+def parse_note_via_html(note_path, okr=None):
     with open(note_path, 'r', encoding="utf-8") as f:
         text = f.read()
     html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
-    return parse_html_for_tasks(soup)
+    tasks = Tree()
+    tasks.create_node("Root", 'root')
+    return parse_html_for_tasks(soup, tasks, 'root', okr)
 
 
-def parse_html_for_tasks(elem, okr=None):
+def parse_html_for_tasks(elem, subtree, root, okr=None):
     """
     Recursively filters the element tree to retain only the required tasks 
     while retaining the tree structure.
