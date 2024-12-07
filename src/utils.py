@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import pathlib
 import os
-from src.note_utils import parse_note_via_html
+from src.note_utils import parse_note_for_tasks
 from itertools import chain
 
 md = MarkdownIt()

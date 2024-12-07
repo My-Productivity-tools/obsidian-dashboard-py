@@ -12,6 +12,7 @@ ipykernel = "*"
 obsidiantools = "*"
 markdown-it-py = {extras = ["plugins", "linkify"], version = "*"}
 beautifulsoup4 = "*"
+treelib = "*"
 
 [dev-packages]
 
