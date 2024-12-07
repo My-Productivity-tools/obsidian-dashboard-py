@@ -10,7 +10,7 @@ from treelib import Node, Tree
 md = MarkdownIt()
 
 
-def parse_note_via_html(note_path, okr=None):
+def parse_note_for_tasks(note_path, okr=None):
     with open(note_path, 'r', encoding="utf-8") as f:
         text = f.read()
     html = md.render(text)
@@ -18,6 +18,7 @@ def parse_note_via_html(note_path, okr=None):
     task_tree = Tree()
     task_tree.create_node("Root", 'root')
     parse_html_for_tasks(soup, task_tree, 'root', okr)  # Include okr as an argument
+    return task_tree
 
 
 def parse_html_for_tasks(elem, task_tree, root, okr=None):
