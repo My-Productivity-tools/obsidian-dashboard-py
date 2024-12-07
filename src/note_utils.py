@@ -124,5 +124,5 @@ def convert_to_task(elem):
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
     
-    # TODO: Add additional fields if required - description
+    # TODO: Add additional fields if required - description w/o tags & field tags
     return task
