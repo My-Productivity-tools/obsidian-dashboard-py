@@ -59,6 +59,7 @@ def convert_to_task(elem):
     :param elem: A HTML element to be converted into a task.
     :return: A task object.
     """
+    task_node = Node()
     task = {}
     task['raw_text'] = elem.text  # storing raw text
         
@@ -128,4 +129,6 @@ def convert_to_task(elem):
         raise ValueError(f"Multiple task types found: {task_types}")
     
     # TODO: Add additional fields if required - description w/o tags & field tags
-    return task
+
+    task_node.data = task
+    return task_node
