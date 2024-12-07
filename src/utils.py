@@ -42,7 +42,7 @@ def parse_okr_note(okr_note, vault):
     kr_matches = [re.search(kr_pattern, e.text) 
                for e in soup.findAll('h3', recursive=False)]
     for match in kr_matches:
-        okr_info[match[1]]['kr_info'][match[2]] = match[3].strip(' []')
+        okr_info[match[1]]['kr_info'][match[2]] = match[3].strip()
     
     return okr_info
 
