@@ -17,10 +17,10 @@ def parse_note_via_html(note_path, okr=None):
     soup = BeautifulSoup(html, 'html.parser')
     task_tree = Tree()
     task_tree.create_node("Root", 'root')
-    parse_html_for_tasks(soup, task_tree, okr)
+    parse_html_for_tasks(soup, task_tree, 'root', okr)  # Include okr as an argument
 
 
-def parse_html_for_tasks(elem, sub_tree, okr=None):
+def parse_html_for_tasks(elem, task_tree, root, okr=None):
     """
     Recursively filters the element tree to retain only the required tasks 
     while retaining the tree structure.
@@ -33,16 +33,16 @@ def parse_html_for_tasks(elem, sub_tree, okr=None):
         task = convert_to_task(elem.__copy__())
         if okr is not None:
             if 'okr' in task.data and task.data['okr'] == okr:
-                sub_tree.add_node(task, sub_tree.root)
+                task_tree.add_node(task, root)
                 # Children should not be checked for OKR if the parent is marked for the OKR
-                [parse_html_for_tasks(child, sub_tree.subtree(task.identifier)) for child in children]
+                [parse_html_for_tasks(child, task_tree, task.identifier) for child in children]
             else:
-                [parse_html_for_tasks(child, sub_tree, okr) for child in children]
+                [parse_html_for_tasks(child, task_tree, root, okr) for child in children]
         else:
-                sub_tree.add_node(task, sub_tree.root)
-                [parse_html_for_tasks(child, sub_tree.subtree(task.identifier), okr) for child in children]
+                task_tree.add_node(task, root)
+                [parse_html_for_tasks(child, task_tree, task.identifier, okr) for child in children]
     else:
-        [parse_html_for_tasks(child, sub_tree, okr) for child in children]
+        [parse_html_for_tasks(child, task_tree, root, okr) for child in children]
     
 
 def convert_to_task(elem):
