@@ -1,27 +1,30 @@
 from markdown_it import MarkdownIt
-import pypandoc
-import json
 from bs4 import BeautifulSoup
-from itertools import chain
 import json
 import re
 from treelib import Node, Tree
+from dotenv import load_dotenv
+import pathlib
+import os
 
 md = MarkdownIt()
+load_dotenv()
+VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 
 
-def parse_note_for_tasks(note_path, okr=None):
+def parse_note_for_tasks(note, vault, okr=None):
+    note_path = VAULT_LOC / vault.md_file_index[note]
     with open(note_path, 'r', encoding="utf-8") as f:
         text = f.read()
     html = md.render(text)
     soup = BeautifulSoup(html, 'html.parser')
     task_tree = Tree()
     task_tree.create_node("Root", 'root')
-    parse_html_for_tasks(soup, task_tree, 'root', okr)  # Include okr as an argument
+    parse_html_for_tasks(soup, task_tree, 'root', note, okr)
     return task_tree
 
 
-def parse_html_for_tasks(elem, task_tree, root, okr=None):
+def parse_html_for_tasks(elem, task_tree, root, note, okr=None):
     """
     Recursively filters the element tree to retain only the required tasks 
     while retaining the tree structure.
@@ -31,22 +34,22 @@ def parse_html_for_tasks(elem, task_tree, root, okr=None):
     """
     children = elem.findChildren(recursive=False)
     if elem.name == "li" and elem.text.startswith('['):
-        task = convert_to_task(elem.__copy__())
+        task = convert_to_task(elem.__copy__(), note)
         if okr is not None:
             if 'okr' in task.data and task.data['okr'] == okr:
                 task_tree.add_node(task, root)
                 # Children should not be checked for OKR if the parent is marked for the OKR
-                [parse_html_for_tasks(child, task_tree, task.identifier) for child in children]
+                [parse_html_for_tasks(child, task_tree, task.identifier, note) for child in children]
             else:
-                [parse_html_for_tasks(child, task_tree, root, okr) for child in children]
+                [parse_html_for_tasks(child, task_tree, root, note, okr) for child in children]
         else:
                 task_tree.add_node(task, root)
-                [parse_html_for_tasks(child, task_tree, task.identifier, okr) for child in children]
+                [parse_html_for_tasks(child, task_tree, task.identifier, note, okr) for child in children]
     else:
-        [parse_html_for_tasks(child, task_tree, root, okr) for child in children]
-    
+        [parse_html_for_tasks(child, task_tree, root, note, okr) for child in children]
 
-def convert_to_task(elem):
+
+def convert_to_task(elem, note):
     """
     Converts a HTML element into a task object.
 
@@ -122,6 +125,7 @@ def convert_to_task(elem):
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
     
+    task['file_name'] = note
     # TODO: Add additional fields if required - description w/o tags & field tags
 
     task_node.data = task
