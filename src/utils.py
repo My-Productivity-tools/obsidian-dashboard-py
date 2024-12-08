@@ -16,11 +16,12 @@ def get_okr_data(okr_note, vault):
     okr_note = '2024 Oct'
     
     front_matter = vault.get_front_matter(okr_note)
-    start_date = front_matter['start_date']
-    end_date = front_matter['end_date']
+    okr_start_date = front_matter['start_date']
+    okr_end_date = front_matter['end_date']
 
     okr_info = parse_okr_note(okr_note, vault)
-    return get_kr_data(okr_info, vault)
+    okr_data = get_kr_data(okr_info, vault)
+    return okr_info, okr_data, okr_start_date, okr_end_date
 
 
 def parse_okr_note(okr_note, vault):
@@ -32,10 +33,10 @@ def parse_okr_note(okr_note, vault):
     soup = BeautifulSoup(html, 'html.parser')
 
     # Get the Objectives
-    o_pattern = r'(O\d+):(.+)'
-    o_matches = [re.search(o_pattern, e.text)
+    obj_pattern = r'(O\d+):(.+)'
+    obj_matches = [re.search(obj_pattern, e.text)
                  for e in soup.findAll('h1', recursive=False)]
-    okr_info = {m[1].strip(): {'name': m[2].strip(), 'kr_info': {}} for m in o_matches}
+    okr_info = {m[1].strip(): {'name': m[2].strip(), 'kr_info': {}} for m in obj_matches}
 
     # Get the Key Results
     kr_pattern = r'(O\d+)\s(KR\d+):(.+)'
@@ -50,5 +51,5 @@ def parse_okr_note(okr_note, vault):
     return okr_info
 
 
-def get_kr_data(okr_list, vault):
+def get_kr_data(okr_info, vault):
     pass
