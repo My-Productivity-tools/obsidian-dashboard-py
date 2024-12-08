@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import pathlib
 import os
 from src.note_utils import parse_note_for_tasks
-from itertools import chain
+from treelib import Tree
 
 md = MarkdownIt()
 load_dotenv()
@@ -13,7 +13,7 @@ VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 
 
 def get_okr_data(okr_note, vault):
-    okr_note = '2024 Oct'
+    okr_note = '2024 Nov'
     
     front_matter = vault.get_front_matter(okr_note)
     okr_start_date = front_matter['start_date']
@@ -52,4 +52,27 @@ def parse_okr_note(okr_note, vault):
 
 
 def get_kr_data(okr_info, vault):
-    pass
+    okr_data = okr_info.copy()
+    note = 'Deep Learning'
+    note_path = VAULT_LOC / vault.md_file_index[note]
+    # TODO: Parse all relevant notes for tags marked w/ the OKR tag
+    for obj in okr_info.keys():
+        print(obj)
+        for kr in okr_info[obj]['kr_info'].keys():
+            print(kr)
+            tasks = Tree()
+            tasks.create_node("Master Root", 'master_root')
+            for note in vault.md_file_index.keys():
+                print(note)
+                note_tasks = \
+                    parse_note_for_tasks(note, vault, okr_info[obj]['kr_info'][kr]['okr_tag'])
+                tasks.paste(note_tasks, 'master_root').link_past_node('root')
+            okr_info[obj]['kr_info'][kr]['kr_data'] = tasks
+    return okr_data
+                
+    # TODO: Parse all Daily notes for all kinds of tasks / events
+    # TODO: Extract duration from all tasks & events
+
+
+# TODO: OKR-specific steps to use relevant data, including criteria in OKR note
+# TODO: Generate chart data for each OKR
