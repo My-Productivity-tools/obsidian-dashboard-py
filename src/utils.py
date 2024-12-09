@@ -75,7 +75,21 @@ def get_kr_data(okr_info, vault):
             okr_data[obj]['kr_info'][kr]['kr_data'] = tasks
     return okr_data
 
-    # TODO: Parse all Daily notes for all kinds of tasks / events
+
+def get_daily_notes_tasks(vault):
+    # Parse all Daily notes for all kinds of tasks / events
+    note_metadata = vault.get_note_metadata()
+    tasks = Tree()
+    tasks.create_node("Master Root", 'master_root')
+    for note in vault.md_file_index.keys():
+        print(note)
+        note_path = note_metadata.loc[note_metadata.index ==
+                                      note, 'abs_filepath'].iloc[0]
+        if note_path.is_relative_to(DAILY_NOTES_LOC):
+            note_tasks = parse_note_for_tasks(note, vault)
+            tasks.paste('master_root', note_tasks)
+            tasks.link_past_node('root')
+
     # TODO: Extract duration from all tasks & events
 
 
