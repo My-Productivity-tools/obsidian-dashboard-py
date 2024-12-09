@@ -6,22 +6,24 @@ import pathlib
 import os
 from src.note_utils import parse_note_for_tasks
 from treelib import Tree
+from datetime import datetime
 
 md = MarkdownIt()
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
+DAILY_NOTES_LOC = pathlib.Path(os.getenv('DAILY_NOTES_LOC'))
 
 
 def get_okr_data(okr_note, vault):
-    okr_note = '2024 Nov'
-    
-    front_matter = vault.get_front_matter(okr_note)
-    okr_start_date = front_matter['start_date']
-    okr_end_date = front_matter['end_date']
+    # okr_note = '2024 Nov'
+
+    # front_matter = vault.get_front_matter(okr_note)
+    # okr_start_date = front_matter['start_date']
+    # okr_end_date = front_matter['end_date']
 
     okr_info = parse_okr_note(okr_note, vault)
-    okr_data = get_kr_data(okr_info, vault)
-    return okr_info, okr_data, okr_start_date, okr_end_date
+    okr_data = get_kr_tagged_tasks(okr_info, vault)
+    return okr_data  # okr_start_date, okr_end_date
 
 
 def parse_okr_note(okr_note, vault):
@@ -52,12 +54,10 @@ def parse_okr_note(okr_note, vault):
     return okr_info
 
 
-def get_kr_data(okr_info, vault):
+def get_kr_tagged_tasks(okr_info, vault):
     okr_data = okr_info.copy()
-    # note = 'Deep Learning'
-    # note_path = VAULT_LOC / vault.md_file_index[note]
+
     note_metadata = vault.get_note_metadata()
-    # TODO: Parse all relevant notes for tags marked w/ the OKR tag
     for obj in okr_data.keys():
         print(obj)
         for kr in okr_data[obj]['kr_info'].keys():
@@ -91,7 +91,6 @@ def get_daily_notes_tasks(vault):
             tasks.link_past_node('root')
 
     # TODO: Extract duration from all events
-
     for task in tasks.all_nodes()[1:]:
         title = task.data['title']
         date_string = task.data['file_name'].split(' ')[0]
