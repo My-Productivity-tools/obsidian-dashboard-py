@@ -146,6 +146,7 @@ def filter_task_tree(task_tree, keywords):
     for node in subtree.expand_tree():
         if subtree.depth(node) > 0:
             # FIXME: This may not be case sensitive
-            if not any(keyword in subtree[node].data['title'] for keyword in keywords):
+            if not any(keyword.lower() in subtree[node].data['title'].lower()
+                       for keyword in keywords):
                 subtree.link_past_node(node)
     return subtree
