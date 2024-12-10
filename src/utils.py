@@ -133,8 +133,11 @@ def read_event(date_string, title):
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
         # End time
-        minutes = int(match[5][1:])
-        hours = int(match[4].split(':')[0])
+        if match[5] is not None:
+            minutes = int(match[5][1:])
+        else:
+            minutes = 0
+        hours = int(match[4].split(':')[0].split()[0])
         am_pm = match[6]
         if am_pm is not None:
             if am_pm == 'PM' and hours != 12:
