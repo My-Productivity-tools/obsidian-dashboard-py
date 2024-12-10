@@ -90,12 +90,12 @@ def get_daily_notes_tasks(vault):
             tasks.paste('master_root', note_tasks)
             tasks.link_past_node('root')
 
-    # TODO: Extract duration from all events
+    # Extract duration from all events
     for task in tasks.all_nodes()[1:]:
         title = task.data['title']
         date_string = task.data['file_name'].split(' ')[0]
-        task.data['event_start'], task.data['event_end'], task.data['duration'] = read_event(
-            date_string, title)
+        event_data = read_event(date_string, title)
+        task.data.update(event_data)
 
     return tasks
 
@@ -106,34 +106,37 @@ def read_event(date_string, title):
     match = re.search(pattern_event, title)
 
     # Start time
-    minutes = int(match[2][1:])
-    hours = int(match[1].split(':')[0])
-    am_pm = match[3]
-    if am_pm is not None:
-        if am_pm == 'PM' and hours != 12:
-            hours += 12
-        elif am_pm == 'AM' and hours == 12:
-            hours = 0
-    event_start = datetime.strptime(date_string + ' ' +
-                                    str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
+    if match is not None:
+        minutes = int(match[2][1:])
+        hours = int(match[1].split(':')[0])
+        am_pm = match[3]
+        if am_pm is not None:
+            if am_pm == 'PM' and hours != 12:
+                hours += 12
+            elif am_pm == 'AM' and hours == 12:
+                hours = 0
+        event_start = datetime.strptime(date_string + ' ' +
+                                        str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
-    # End time
-    minutes = int(match[5][1:])
-    hours = int(match[4].split(':')[0])
-    am_pm = match[6]
-    if am_pm is not None:
-        if am_pm == 'PM' and hours != 12:
-            hours += 12
-        elif am_pm == 'AM' and hours == 12:
-            hours = 0
-    event_end = datetime.strptime(date_string + ' ' +
-                                  str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
+        # End time
+        minutes = int(match[5][1:])
+        hours = int(match[4].split(':')[0])
+        am_pm = match[6]
+        if am_pm is not None:
+            if am_pm == 'PM' and hours != 12:
+                hours += 12
+            elif am_pm == 'AM' and hours == 12:
+                hours = 0
+        event_end = datetime.strptime(date_string + ' ' +
+                                      str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
-    duration = (event_end - event_start).total_seconds()/3600
+        duration = (event_end - event_start).total_seconds()/3600
 
-    # TODO: Account for the use case for an event extending into the next day
+        # TODO: Account for the use case for an event extending into the next day
 
-    return event_start, event_end, duration
+        return {'event_start': event_start, 'event_end': event_end, 'duration': duration}
+    else:
+        return None
 
 
 # TODO: OKR-specific steps to use relevant data, including criteria in OKR note
