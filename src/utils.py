@@ -24,8 +24,12 @@ def get_okr_data(okr_note, vault):
     okr_end_date = front_matter['end_date']
 
     okr_info = parse_okr_note(okr_note, vault)
-    okr_data = get_kr_tagged_tasks(okr_info, vault)
-    return okr_data, okr_start_date, okr_end_date
+
+    for obj in okr_info.keys():
+        for kr in okr_info[obj]['kr_info'].keys():
+            okr_info[obj]['kr_info'][kr]['data'] = get_kr_tagged_tasks(
+                okr_info[obj]['kr_info'][kr]['okr_tag'], vault)
+    return okr_info, okr_start_date, okr_end_date
 
 
 def parse_okr_note(okr_note, vault):
@@ -50,40 +54,36 @@ def parse_okr_note(okr_note, vault):
     kr_matches = [re.search(kr_pattern, e.text)
                   for e in soup.findAll('h3', recursive=False)]
 
-    criteria_pattern = r'[\[]criteria::(.+)[\]]'
+    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
 
     for i, match in enumerate(kr_matches):
+        print(i)
         okr_info[match[1]]['kr_info'][match[2]] = {
             'name': match[3].strip(),
             'okr_tag': '[[' + okr_note + '#' +
             match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
             'criteria': criteria_matches[i][1].strip()
         }
+        if criteria_matches[i][2] is not None:
+            okr_info[match[1]]['kr_info'][match[2]]['keywords'] = ast.literal_eval(
+                criteria_matches[i][2].strip())
     return okr_info
 
 
-def get_kr_tagged_tasks(okr_info, vault):
-    okr_data = okr_info.copy()
-
+def get_kr_tagged_tasks(okr_tag, vault):
     note_metadata = vault.get_note_metadata()
-    for obj in okr_data.keys():
-        print(obj)
-        for kr in okr_data[obj]['kr_info'].keys():
-            print(kr)
-            tasks = Tree()
-            tasks.create_node("Master Root", 'master_root')
-            for note in vault.md_file_index.keys():
-                print(note)
-                if note_metadata.loc[note_metadata.index == note, 'note_exists'].iloc[0]:
-                    note_tasks = \
-                        parse_note_for_tasks(
-                            note, vault, okr_data[obj]['kr_info'][kr]['okr_tag'])
-                    tasks.paste('master_root', note_tasks)
-                    tasks.link_past_node('root')
-            okr_data[obj]['kr_info'][kr]['kr_data'] = tasks
-    return okr_data
+    tasks = Tree()
+    tasks.create_node("Master Root", 'master_root')
+    for note in vault.md_file_index.keys():
+        print(note)
+        if note_metadata.loc[note_metadata.index == note, 'note_exists'].iloc[0]:
+            note_tasks = \
+                parse_note_for_tasks(note, vault, okr_tag)
+            tasks.paste('master_root', note_tasks)
+            tasks.link_past_node('root')
+    return tasks
 
 
 def get_daily_notes_tasks(vault):
