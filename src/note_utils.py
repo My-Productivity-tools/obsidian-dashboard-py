@@ -119,7 +119,7 @@ def convert_to_task(elem, note):
     matches_dv = re.findall(pattern_dv, task['title'])
     for match in matches_dv:
         key, val = match[0].strip(), match[1].strip()
-        if key in ['Story Points', 'Duration']:
+        if key in ['Story Points', 'duration']:
             val = float(val)
         task[key] = val
 
@@ -134,6 +134,7 @@ def convert_to_task(elem, note):
         raise ValueError(f"Multiple task types found: {task_types}")
 
     task['file_name'] = note
+
     # TODO: Add additional fields if required - description w/o tags & field tags
 
     task_node.data = task
