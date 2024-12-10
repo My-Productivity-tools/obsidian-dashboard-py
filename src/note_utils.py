@@ -139,3 +139,13 @@ def convert_to_task(elem, note):
 
     task_node.data = task
     return task_node
+
+
+def filter_task_tree(task_tree, keywords):
+    subtree = Tree(task_tree, deep=True)
+    for node in subtree.expand_tree():
+        if subtree.depth(node) > 0:
+            # FIXME: This may not be case sensitive
+            if not any(keyword in subtree[node].data['title'] for keyword in keywords):
+                subtree.link_past_node(node)
+    return subtree

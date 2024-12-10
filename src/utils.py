@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import pathlib
 import os
-from src.note_utils import parse_note_for_tasks
+from src.note_utils import parse_note_for_tasks, filter_task_tree
 from treelib import Tree
 from datetime import datetime as dt, timedelta
 import ast
@@ -13,6 +13,9 @@ md = MarkdownIt()
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 DAILY_NOTES_LOC = pathlib.Path(os.getenv('DAILY_NOTES_LOC'))
+CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
+CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
+CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
 
 def get_okr_data(okr_note, vault):
@@ -25,11 +28,21 @@ def get_okr_data(okr_note, vault):
     okr_end_date = front_matter['end_date']
 
     okr_info = parse_okr_note(okr_note, vault)
+    daily_notes_tasks = get_daily_notes_tasks(vault)
 
     for obj in okr_info.keys():
         for kr in okr_info[obj]['kr_info'].keys():
-            okr_info[obj]['kr_info'][kr]['data'] = get_kr_tagged_tasks(
-                okr_info[obj]['kr_info'][kr]['okr_tag'], vault)
+            okr_info_kr = okr_info[obj]['kr_info'][kr]
+            keywords = okr_info_kr.get('keywords')
+            if okr_info_kr['criteria'] == CRITERIA_STORY_POINTS:
+                okr_info_kr['data'] = get_kr_tagged_tasks(
+                    okr_info_kr['okr_tag'], vault)
+            elif okr_info_kr['criteria'] == CRITERIA_COUNT:
+                okr_info_kr['data'] = filter_task_tree(
+                    daily_notes_tasks, keywords)
+            elif okr_info_kr['criteria'] == CRITERIA_DURATION:
+                okr_info_kr['data'] = filter_task_tree(
+                    daily_notes_tasks, keywords)
     return okr_info, okr_start_date, okr_end_date
 
 
