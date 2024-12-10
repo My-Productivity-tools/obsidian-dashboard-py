@@ -105,20 +105,24 @@ def get_daily_notes_tasks(vault):
         title = task.data['title']
         date_string = task.data['file_name'].split(' ')[0]
         event_data = read_event(date_string, title)
-        task.data.update(event_data)
+        if event_data is not None:
+            task.data.update(event_data)
 
     return tasks
 
 
 def read_event(date_string, title):
     # pattern_event = r'\b(\d{1,2}:\d{2}\s?(AM|PM)\s?)-(\s?\d{1,2}:\d{2}\s?(AM|PM))'
-    pattern_event = r'\b(\d{1,2}(:\d{2})?\s*(AM|PM)?)\s*-\s*(\d{1,2}(:\d{2})?\s*(AM|PM)?)\b'
+    pattern_event = r'^\b(\d{1,2}(:\d{2})?\s*(AM|PM)?)\s*-\s*(\d{1,2}(:\d{2})?\s*(AM|PM)?)\b'
     match = re.search(pattern_event, title)
 
     # Start time
     if match is not None:
-        minutes = int(match[2][1:])
-        hours = int(match[1].split(':')[0])
+        if match[2] is not None:
+            minutes = int(match[2][1:])
+        else:
+            minutes = 0
+        hours = int(match[1].split(':')[0].split()[0])
         am_pm = match[3]
         if am_pm is not None:
             if am_pm == 'PM' and hours != 12:
