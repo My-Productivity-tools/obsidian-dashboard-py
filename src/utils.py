@@ -6,7 +6,8 @@ import pathlib
 import os
 from src.note_utils import parse_note_for_tasks
 from treelib import Tree
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
+import ast
 
 md = MarkdownIt()
 load_dotenv()
@@ -148,7 +149,7 @@ def read_event(date_string, title):
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
         if event_end < event_start:  # If the event ends on the next day
-            event_end += dt.timedelta(days=1)
+            event_end += timedelta(days=1)
         duration = (event_end - event_start).total_seconds()/3600
 
         return {'event_start': event_start, 'event_end': event_end, 'duration': duration}
