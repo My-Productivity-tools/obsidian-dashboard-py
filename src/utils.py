@@ -15,15 +15,17 @@ DAILY_NOTES_LOC = pathlib.Path(os.getenv('DAILY_NOTES_LOC'))
 
 
 def get_okr_data(okr_note, vault):
-    # okr_note = '2024 Nov'
+    # TODO: Generate chart data for each OKR
 
-    # front_matter = vault.get_front_matter(okr_note)
-    # okr_start_date = front_matter['start_date']
-    # okr_end_date = front_matter['end_date']
+    okr_note = '2024 Nov'
+
+    front_matter = vault.get_front_matter(okr_note)
+    okr_start_date = front_matter['start_date']
+    okr_end_date = front_matter['end_date']
 
     okr_info = parse_okr_note(okr_note, vault)
     okr_data = get_kr_tagged_tasks(okr_info, vault)
-    return okr_data  # okr_start_date, okr_end_date
+    return okr_data, okr_start_date, okr_end_date
 
 
 def parse_okr_note(okr_note, vault):
@@ -43,13 +45,21 @@ def parse_okr_note(okr_note, vault):
 
     # Get the Key Results
     kr_pattern = r'(O\d+)\s(KR\d+):(.+)'
+    kr_elem_matches = [e for e in soup.findAll(
+        'h3', recursive=False) if re.search(kr_pattern, e.text)]
     kr_matches = [re.search(kr_pattern, e.text)
                   for e in soup.findAll('h3', recursive=False)]
-    for match in kr_matches:
+
+    criteria_pattern = r'[\[]criteria::(.+)[\]]'
+    criteria_matches = [re.search(
+        criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
+
+    for i, match in enumerate(kr_matches):
         okr_info[match[1]]['kr_info'][match[2]] = {
             'name': match[3].strip(),
-            'okr_tag': '[[' + okr_note + '#' + match[0].replace(':', '')
-                       .replace('[', '').replace(']', '') + ']]'
+            'okr_tag': '[[' + okr_note + '#' +
+            match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
+            'criteria': criteria_matches[i][1].strip()
         }
     return okr_info
 
@@ -137,7 +147,3 @@ def read_event(date_string, title):
         return {'event_start': event_start, 'event_end': event_end, 'duration': duration}
     else:
         return None
-
-
-# TODO: OKR-specific steps to use relevant data, including criteria in OKR note
-# TODO: Generate chart data for each OKR
