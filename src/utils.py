@@ -41,19 +41,17 @@ def get_okr_data(okr_note, vault):
 
     # Get the task / event / action data for each KR
     daily_notes_tasks = get_daily_notes_tasks(vault)
-    for obj in okr_data.keys():
-        for kr in okr_data[obj]['kr_info'].keys():
-            okr_data_kr = okr_data[obj]['kr_info'][kr]
-            keywords = okr_data_kr.get('keywords')
-            if okr_data_kr['criteria'] == CRITERIA_STORY_POINTS:
-                okr_data_kr['data'] = get_kr_tagged_tasks(
-                    okr_data_kr['okr_tag'], vault)
-            elif okr_data_kr['criteria'] == CRITERIA_COUNT:
-                okr_data_kr['data'] = filter_daily_tasks(
-                    daily_notes_tasks, keywords, okr_start_date, okr_end_date)
-            elif okr_data_kr['criteria'] == CRITERIA_DURATION:
-                okr_data_kr['data'] = filter_daily_tasks(
-                    daily_notes_tasks, keywords, okr_start_date, okr_end_date)
+    for okr in okr_data.keys():
+        keywords = okr_data[okr].get('keywords')
+        if okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
+            okr_data[okr]['data'] = get_kr_tagged_tasks(
+                okr_data[okr]['okr_tag'], vault)
+        elif okr_data[okr]['criteria'] == CRITERIA_COUNT:
+            okr_data[okr]['data'] = filter_daily_tasks(
+                daily_notes_tasks, keywords, okr_start_date, okr_end_date)
+        elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
+            okr_data[okr]['data'] = filter_daily_tasks(
+                daily_notes_tasks, keywords, okr_start_date, okr_end_date)
     return okr_data, okr_start_date, okr_end_date
 
 
