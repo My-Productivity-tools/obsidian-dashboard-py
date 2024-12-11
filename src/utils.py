@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import pathlib
 import os
-from src.note_utils import parse_note_for_tasks, filter_task_tree
+from src.note_utils import parse_note_for_tasks, filter_daily_tasks
 from treelib import Tree
 from datetime import datetime as dt, timedelta
 import ast
@@ -30,6 +30,8 @@ def get_okr_data(okr_note, vault):
     okr_info = parse_okr_note(okr_note, vault)
     daily_notes_tasks = get_daily_notes_tasks(vault)
 
+    # TODO: Filter the task data based on OKR start/end dates and relevant
+    # task date fields "Done Date" for okr-tagged-tasks
     for obj in okr_info.keys():
         for kr in okr_info[obj]['kr_info'].keys():
             okr_info_kr = okr_info[obj]['kr_info'][kr]
@@ -38,11 +40,11 @@ def get_okr_data(okr_note, vault):
                 okr_info_kr['data'] = get_kr_tagged_tasks(
                     okr_info_kr['okr_tag'], vault)
             elif okr_info_kr['criteria'] == CRITERIA_COUNT:
-                okr_info_kr['data'] = filter_task_tree(
-                    daily_notes_tasks, keywords)
+                okr_info_kr['data'] = filter_daily_tasks(
+                    daily_notes_tasks, keywords, okr_start_date, okr_end_date)
             elif okr_info_kr['criteria'] == CRITERIA_DURATION:
-                okr_info_kr['data'] = filter_task_tree(
-                    daily_notes_tasks, keywords)
+                okr_info_kr['data'] = filter_daily_tasks(
+                    daily_notes_tasks, keywords, okr_start_date, okr_end_date)
     return okr_info, okr_start_date, okr_end_date
 
 

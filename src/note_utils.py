@@ -6,6 +6,7 @@ from treelib import Node, Tree
 from dotenv import load_dotenv
 import pathlib
 import os
+import datetime as dt
 
 md = MarkdownIt()
 load_dotenv()
@@ -141,12 +142,15 @@ def convert_to_task(elem, note):
     return task_node
 
 
-def filter_task_tree(task_tree, keywords):
+def filter_daily_tasks(task_tree, keywords, start_date=None, end_date=None):
     subtree = Tree(task_tree, deep=True)
     for node in subtree.expand_tree():
+        date = dt.date.fromisoformat(
+            subtree[node].data['file_name'].split()[0])
         if subtree.depth(node) > 0:
-            # FIXME: This may not be case sensitive
-            if not any(keyword.lower() in subtree[node].data['title'].lower()
-                       for keyword in keywords):
-                subtree.link_past_node(node)
+            if (start_date is None or date >= start_date) and \
+                    (end_date is None or date <= end_date):
+                if not any(keyword.lower() in subtree[node].data['title'].lower()
+                           for keyword in keywords):
+                    subtree.link_past_node(node)
     return subtree
