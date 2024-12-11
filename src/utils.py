@@ -17,21 +17,30 @@ CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
 CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
+# TODO: Generate chart data for each OKR
+
 
 def get_okr_data(okr_note, vault):
-    # TODO: Generate chart data for each OKR
+    """Get all relevant data for a specific OKR cycle.
 
-    okr_note = '2024 Nov'
+    Args:
+        okr_note (str): Name of the OKR note in the vault.
+        vault (Vault): The vault object containing the OKR note.
 
+    Returns:
+        dict: Dict object containing the OKR info & data, uses Tree objects for
+         storing the KR data.
+    """
+    # okr_note = '2024 Nov'
     front_matter = vault.get_front_matter(okr_note)
     okr_start_date = front_matter['start_date']
     okr_end_date = front_matter['end_date']
 
+    # Get the KR info from the OKR note
     okr_info = parse_okr_note(okr_note, vault)
-    daily_notes_tasks = get_daily_notes_tasks(vault)
 
-    # TODO: Filter the task data based on OKR start/end dates and relevant
-    # task date fields "Done Date" for okr-tagged-tasks
+    # Get the task / event / action data for each KR
+    daily_notes_tasks = get_daily_notes_tasks(vault)
     for obj in okr_info.keys():
         for kr in okr_info[obj]['kr_info'].keys():
             okr_info_kr = okr_info[obj]['kr_info'][kr]
@@ -49,6 +58,15 @@ def get_okr_data(okr_note, vault):
 
 
 def parse_okr_note(okr_note, vault):
+    """Get all the relevant OKR info from the OKR note for a specific OKR cycle.
+
+    Args:
+        okr_note (str): Name of the OKR note in the vault.
+        vault (Vault): The vault object containing the OKR note.
+
+    Returns:
+        dict: Dict object containing the OKR info.
+    """
     # Get the HTML
     okr_note_path = VAULT_LOC / vault.md_file_index[okr_note]
     with open(okr_note_path, 'r', encoding="utf-8") as f:
@@ -70,10 +88,10 @@ def parse_okr_note(okr_note, vault):
     kr_matches = [re.search(kr_pattern, e.text)
                   for e in soup.findAll('h3', recursive=False)]
 
+    # Get the KR Criteria, Keywords and Targets  # TODO: Targets not done yet
     criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
-
     for i, match in enumerate(kr_matches):
         print(i)
         okr_info[match[1]]['kr_info'][match[2]] = {
@@ -85,10 +103,21 @@ def parse_okr_note(okr_note, vault):
         if criteria_matches[i][2] is not None:
             okr_info[match[1]]['kr_info'][match[2]]['keywords'] = ast.literal_eval(
                 criteria_matches[i][2].strip())
+
     return okr_info
 
 
+# Functions to get the KR data for different KR criteria types
 def get_kr_tagged_tasks(okr_tag, vault):
+    """Get KR tagged tasks from the vault for KRs that depends on OKR tags.
+
+    Args:
+        okr_tag (str): The OKR tag used in the tasks to mark for a specific OKR.
+        vault (Vault): The vault object containing the OKR note and the tasks.
+
+    Returns:
+        Tree: Tasks tree object containing the tasks tagged for a specific OKR.
+    """
     note_metadata = vault.get_note_metadata()
     tasks = Tree()
     tasks.create_node("Master Root", 'master_root')
@@ -103,6 +132,14 @@ def get_kr_tagged_tasks(okr_tag, vault):
 
 
 def get_daily_notes_tasks(vault):
+    """Get all the tasks from the daily notes.
+
+    Args:
+        vault (Vault): The vault object containing the daily notes.
+
+    Returns:
+        Tree: Tasks tree object containing the tasks from the daily notes.
+    """
     # Parse all Daily notes for all kinds of tasks / events
     note_metadata = vault.get_note_metadata()
     tasks = Tree()
@@ -128,12 +165,20 @@ def get_daily_notes_tasks(vault):
 
 
 def read_event(date_string, title):
-    # pattern_event = r'\b(\d{1,2}:\d{2}\s?(AM|PM)\s?)-(\s?\d{1,2}:\d{2}\s?(AM|PM))'
+    """Read the event start, end date-times from the title of a task if it is an event.
+
+    Args:
+        date_string (str): The date string in ISO format of the task/event.
+        title (str): The title of the task.
+
+    Returns:
+        dict: A dict containing the event start & end date-times and duration.
+    """
     pattern_event = r'^\b(\d{1,2}(:\d{2})?\s*(AM|PM)?)\s*-\s*(\d{1,2}(:\d{2})?\s*(AM|PM)?)\b'
     match = re.search(pattern_event, title)
 
-    # Start time
     if match is not None:
+        # Extract the event start time
         if match[2] is not None:
             minutes = int(match[2][1:])
         else:
@@ -148,7 +193,7 @@ def read_event(date_string, title):
         event_start = dt.strptime(
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
-        # End time
+        # Extract the event end time
         if match[5] is not None:
             minutes = int(match[5][1:])
         else:
@@ -163,7 +208,8 @@ def read_event(date_string, title):
         event_end = dt.strptime(
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
-        if event_end < event_start:  # If the event ends on the next day
+        # If the event ends on the next day
+        if event_end < event_start:
             event_end += timedelta(days=1)
         duration = (event_end - event_start).total_seconds()/3600
 
