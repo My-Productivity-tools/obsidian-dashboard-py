@@ -78,8 +78,7 @@ def parse_okr_note(okr_note, vault):
     obj_pattern = r'(O\d+):(.+)'
     obj_matches = [re.search(obj_pattern, e.text)
                    for e in soup.findAll('h1', recursive=False)]
-    okr_info = {m[1].strip(): {'name': m[2].strip(), 'kr_info': {}}
-                for m in obj_matches}
+    obj_map = {m[1].strip(): m[2].strip() for m in obj_matches}
 
     # Get the Key Results
     kr_pattern = r'(O\d+)\s(KR\d+):(.+)'
@@ -92,16 +91,18 @@ def parse_okr_note(okr_note, vault):
     criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
+
+    # Create okr_info
+    okr_info = {}
     for i, match in enumerate(kr_matches):
         print(i)
-        okr_info[match[1]]['kr_info'][match[2]] = {
-            'name': match[3].strip(),
-            'okr_tag': '[[' + okr_note + '#' +
-            match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
-            'criteria': criteria_matches[i][1].strip()
-        }
+        okr = match[1] + ' ' + match[2] + ' ' + match[3].strip()
+        okr_info[okr] = {'obj_key': match[1], 'obj_name': obj_map[match[1]],
+                         'kr_key': match[2], 'kr_name': match[3].strip(),
+                         'okr_tag': '[[' + okr_note + '#' + match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
+                         'criteria': criteria_matches[i][1].strip()}
         if criteria_matches[i][2] is not None:
-            okr_info[match[1]]['kr_info'][match[2]]['keywords'] = ast.literal_eval(
+            okr_info[okr]['keywords'] = ast.literal_eval(
                 criteria_matches[i][2].strip())
 
     return okr_info
