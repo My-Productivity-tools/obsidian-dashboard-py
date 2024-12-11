@@ -182,12 +182,14 @@ def filter_daily_tasks(task_tree, keywords, start_date=None, end_date=None):
         Tree: Filtered task tree.
     """
     subtree = Tree(task_tree, deep=True)
-    for node in subtree.expand_tree(filter=lambda node: subtree.depth(node) > 0):
-        date = dt.date.fromisoformat(
-            subtree[node].data['file_name'].split()[0])
-        if (start_date is None or date >= start_date) and \
-                (end_date is None or date <= end_date):
-            if not any(keyword.lower() in subtree[node].data['title'].lower()
-                       for keyword in keywords):
+    for node in subtree.expand_tree():
+        if subtree.depth(node) > 0:
+            date = dt.date.fromisoformat(
+                subtree[node].data['file_name'].split()[0])
+            if (start_date is None or date >= start_date) and \
+                (end_date is None or date <= end_date) and \
+                    any(keyword in subtree[node].data['title'] for keyword in keywords):
+                continue
+            else:
                 subtree.link_past_node(node)
     return subtree
