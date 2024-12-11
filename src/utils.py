@@ -8,6 +8,8 @@ from src.note_utils import parse_note_for_tasks, filter_daily_tasks
 from treelib import Tree
 from datetime import datetime as dt, timedelta
 import ast
+import pandas as pd
+from itertools import product
 
 md = MarkdownIt()
 load_dotenv()
@@ -18,6 +20,48 @@ CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
 # TODO: Generate chart data for each OKR
+
+
+def get_chart_data(okr_note, vault):
+    """Get the chart data for a specific OKR cycle.
+
+    Args:
+        okr_note (str): Name of the OKR note in the vault.
+        vault (Vault): The vault object containing the OKR note and data.
+
+    Returns:
+        DataFrame: DataFrame object containing the chart data.
+    """
+    okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+    date_list = pd.date_range(okr_start_date, okr_end_date)
+    chart_data = pd.DataFrame(
+        list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])
+
+    for okr in okr_data.keys():
+        # TODO: Add pivot logic using the 'data' based on 'criteria'
+        # TODO: Filter data based on dates & criteria
+        score_list = []
+        if okr_data[okr]['criteria'] == CRITERIA_COUNT:
+            for date in date_list:
+                score_list.append(len([n for n in okr_data[okr]['data'].all_nodes(
+                ) if dt.date.fromisoformat(n.data['file_name'].split()[0]) == date]))
+        elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
+            for date in date_list:
+                score_list.append(sum([n.data['duration'] for n in okr_data[okr]['data'].all_nodes(
+                ) if dt.date.fromisoformat(n.data['file_name'].split()[0]) == date]))
+        elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
+            for date in date_list:
+                # TODO: Correctly implement this
+                for n in okr_data['okr']['data'].all_nodes():
+                    if n.data is not None and 'Story Points' in n.data:
+                        print(n.data['Story Points'])
+                # if date in okr_data[okr]['data'].keys():
+                #     score_list.append(okr_data[okr]['data'][date])
+        chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
+
+        # TODO: Add target & 70% target lines
+
+    return okr_data
 
 
 def get_okr_data(okr_note, vault):
