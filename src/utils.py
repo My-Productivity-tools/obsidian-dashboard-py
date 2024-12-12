@@ -49,12 +49,17 @@ def get_okr_chart_data(okr_note, vault):
             for date in date_list:
                 score_list.append(sum([n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[
                                   1:] if 'Done Date' in n.data and n.data['Done Date'] == date]))
+            okr_data[okr]['target'] = sum(
+                [n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[1:]])
+
             # TODO: Address Cancelled tasks
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
+        chart_data.loc[chart_data['okr'] == okr, 'target'] = [
+            ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
+        chart_data['target_70_pct'] = chart_data['target'] * 0.7
 
     chart_data['score'] = chart_data.groupby(
         'okr')['score'].transform(pd.Series.cumsum)
-    # TODO: Add target & 70% target lines
 
     return chart_data
 
