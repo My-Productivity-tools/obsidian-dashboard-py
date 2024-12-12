@@ -19,8 +19,6 @@ CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
 CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
-# TODO: Generate chart data for each OKR
-
 
 def get_okr_chart_data(okr_note, vault):
     """Get the chart data for a specific OKR cycle.
@@ -30,7 +28,7 @@ def get_okr_chart_data(okr_note, vault):
         vault (Vault): The vault object containing the OKR note and data.
 
     Returns:
-        DataFrame: DataFrame object containing the chart data.
+        DataFrame: DataFrame object containing the chart data for the OKR cycle.
     """
     okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
     date_list = pd.date_range(okr_start_date, okr_end_date)
@@ -38,8 +36,6 @@ def get_okr_chart_data(okr_note, vault):
         list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])
 
     for okr in okr_data.keys():
-        # TODO: Add pivot logic using the 'data' based on 'criteria'
-        # TODO: Filter data based on dates & criteria
         score_list = []
         if okr_data[okr]['criteria'] == CRITERIA_COUNT:
             for date in date_list:
@@ -56,7 +52,9 @@ def get_okr_chart_data(okr_note, vault):
             # TODO: Address Cancelled tasks
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
 
-        # TODO: Add target & 70% target lines
+    chart_data['score'] = chart_data.groupby(
+        'okr')['score'].transform(pd.Series.cumsum)
+    # TODO: Add target & 70% target lines
 
     return chart_data
 
