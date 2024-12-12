@@ -125,7 +125,7 @@ def parse_okr_note(okr_note, vault):
                   for e in soup.findAll('h3', recursive=False)]
 
     # Get the KR Criteria, Keywords and Targets  # TODO: Targets not done yet
-    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\(keywords::(.+?)\))?'
+    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
 
@@ -139,8 +139,10 @@ def parse_okr_note(okr_note, vault):
                          'okr_tag': '[[' + okr_note + '#' + match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
                          'criteria': criteria_matches[i][1].strip()}
         if criteria_matches[i][2] is not None:
+            okr_info[okr]['target'] = float(criteria_matches[i][2].strip())
+        if criteria_matches[i][3] is not None:
             okr_info[okr]['keywords'] = ast.literal_eval(
-                criteria_matches[i][2].strip())
+                criteria_matches[i][3].strip())
 
     return okr_info
 
