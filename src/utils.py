@@ -6,7 +6,7 @@ import pathlib
 import os
 from src.note_utils import parse_note_for_tasks, filter_daily_tasks
 from treelib import Tree
-from datetime import datetime as dt, timedelta
+import datetime as dt
 import ast
 import pandas as pd
 from itertools import product
@@ -22,7 +22,7 @@ CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 # TODO: Generate chart data for each OKR
 
 
-def get_chart_data(okr_note, vault):
+def get_okr_chart_data(okr_note, vault):
     """Get the chart data for a specific OKR cycle.
 
     Args:
@@ -44,24 +44,21 @@ def get_chart_data(okr_note, vault):
         if okr_data[okr]['criteria'] == CRITERIA_COUNT:
             for date in date_list:
                 score_list.append(len([n for n in okr_data[okr]['data'].all_nodes(
-                ) if dt.date.fromisoformat(n.data['file_name'].split()[0]) == date]))
+                )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
             for date in date_list:
                 score_list.append(sum([n.data['duration'] for n in okr_data[okr]['data'].all_nodes(
-                ) if dt.date.fromisoformat(n.data['file_name'].split()[0]) == date]))
+                )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
             for date in date_list:
-                # TODO: Correctly implement this
-                for n in okr_data['okr']['data'].all_nodes():
-                    if n.data is not None and 'Story Points' in n.data:
-                        print(n.data['Story Points'])
-                # if date in okr_data[okr]['data'].keys():
-                #     score_list.append(okr_data[okr]['data'][date])
+                score_list.append(sum([n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[
+                                  1:] if 'Done Date' in n.data and n.data['Done Date'] == date]))
+            # TODO: Address Cancelled tasks
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
 
         # TODO: Add target & 70% target lines
 
-    return okr_data
+    return chart_data
 
 
 def get_okr_data(okr_note, vault):
@@ -167,8 +164,7 @@ def get_kr_tagged_tasks(okr_tag, vault):
     for note in vault.md_file_index.keys():
         print(note)
         if note_metadata.loc[note_metadata.index == note, 'note_exists'].iloc[0]:
-            note_tasks = \
-                parse_note_for_tasks(note, vault, okr_tag)
+            note_tasks = parse_note_for_tasks(note, vault, okr_tag)
             tasks.paste('master_root', note_tasks)
             tasks.link_past_node('root')
     return tasks
@@ -233,7 +229,7 @@ def read_event(date_string, title):
                 hours += 12
             elif am_pm == 'AM' and hours == 12:
                 hours = 0
-        event_start = dt.strptime(
+        event_start = dt.datetime.strptime(
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
         # Extract the event end time
@@ -248,12 +244,12 @@ def read_event(date_string, title):
                 hours += 12
             elif am_pm == 'AM' and hours == 12:
                 hours = 0
-        event_end = dt.strptime(
+        event_end = dt.datetime.strptime(
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
         # If the event ends on the next day
         if event_end < event_start:
-            event_end += timedelta(days=1)
+            event_end += dt.timedelta(days=1)
         duration = (event_end - event_start).total_seconds()/3600
 
         return {'event_start': event_start, 'event_end': event_end, 'duration': duration}
