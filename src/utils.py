@@ -56,10 +56,10 @@ def get_okr_chart_data(okr_note, vault):
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
         chart_data.loc[chart_data['okr'] == okr, 'target'] = [
             ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
-        chart_data['target_70_pct'] = chart_data['target'] * 0.7
 
     chart_data['score'] = chart_data.groupby(
         'okr')['score'].transform(pd.Series.cumsum)
+    chart_data['target_70_pct'] = chart_data['target'] * 0.7
 
     return chart_data
 

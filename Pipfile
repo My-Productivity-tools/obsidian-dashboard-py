@@ -4,15 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-numpy = "1.26.4"  # since obsidiantools use np.NaN which is removed in numpy 2.0.0
+numpy = "1.26.4"  # since obsidiantools uses np.NaN which is removed in numpy 2.0.0
 python-dotenv = "*"
-dash = "*"
 pandas = "*"
 ipykernel = "*"
 obsidiantools = "*"
 markdown-it-py = {extras = ["plugins", "linkify"], version = "*"}
 beautifulsoup4 = "*"
 treelib = "*"
+dash = "*"
 
 [dev-packages]
 
