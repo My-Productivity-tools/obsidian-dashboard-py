@@ -134,8 +134,8 @@ def convert_to_task(elem, note):
 
     date_fields_utf = [field for field in task['fields'] if field in dates_map]
     for date_field in date_fields_utf:
-        task[dates_map.get(date_field)
-             ] = title_words[title_words.index(date_field)+1]
+        task[dates_map.get(date_field)] = dt.datetime.fromisoformat(
+            title_words[title_words.index(date_field)+1])
 
     pattern_okr = r'\(([a-zA-Z\s]+)::(.+)\)'
     matches_okr = re.findall(pattern_okr, task['title'])
@@ -160,6 +160,11 @@ def convert_to_task(elem, note):
     else:
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
+
+    if task['type'] in ['epic', 'story']:
+        task['Story Points'] = task.get('Story Points', 0)
+    elif task['type'] == 'task':
+        task['Story Points'] = task.get('Story Points', 1)
 
     task['file_name'] = note
 
