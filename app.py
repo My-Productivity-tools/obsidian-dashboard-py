@@ -32,7 +32,9 @@ app.layout = html.Div(children=[
                   })
         for okr in okr_chart_data.okr.unique()
     ], style={'display': 'grid',
-              'grid-template-columns': '1fr 1fr',  # Two columns
+              # 2 columns
+              'grid-template-columns': " ".join(['1fr'] * ((len(okr_data.keys())+1)//2)),
+              'grid-auto-flow': 'row dense',
               'gap': '0px',  # Spacing between items
               'align-items': 'start'  # Align items to the start of the row
               })
