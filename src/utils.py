@@ -20,7 +20,7 @@ CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
 
-def get_okr_chart_data(okr_note, vault):
+def get_okr_chart_data(okr_data, okr_start_date, okr_end_date):
     """Get the chart data for a specific OKR cycle.
 
     Args:
@@ -30,7 +30,6 @@ def get_okr_chart_data(okr_note, vault):
     Returns:
         DataFrame: DataFrame object containing the chart data for the OKR cycle.
     """
-    okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
     date_list = pd.date_range(okr_start_date, okr_end_date)
     chart_data = pd.DataFrame(
         list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])

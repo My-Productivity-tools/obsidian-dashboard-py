@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 import obsidiantools.api as otools
-from src.utils import get_okr_chart_data
+from src.utils import get_okr_data, get_okr_chart_data
 import pathlib
 from dash import Dash, html, dcc, callback, Output, Input
 import plotly.express as px
@@ -12,7 +12,8 @@ vault = otools.Vault(VAULT_LOC).connect().gather()
 
 # Get the data relevant for the OKR tracker
 okr_note = '2024 Nov'
-okr_chart_data = get_okr_chart_data(okr_note, vault)
+okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+okr_chart_data = get_okr_chart_data(okr_data, okr_start_date, okr_end_date)
 
 app = Dash(__name__)
 app.layout = html.Div(children=[
@@ -20,12 +21,21 @@ app.layout = html.Div(children=[
             style={'textAlign': 'center'}),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
-                  figure=px.line(okr_chart_data[okr_chart_data.okr == okr],
-                                 x='date', y=['score', 'target', 'target_70_pct'],
-                                 labels={'value': 'Score',
-                                         'variable': 'Metrics'}))
+                  figure={
+                      'data': [
+                          {'x': okr_chart_data[okr_chart_data.okr == okr]['date'],
+                           'y': okr_chart_data[okr_chart_data.okr == okr][col],
+                              'type': 'line', 'name': name}
+                          for col, name in zip(['score', 'target', 'target_70_pct'],
+                                               ['score', 'target', '70% of target'])],
+                      'layout': {'title': okr, 'showlegend': False, 'yaxis': {'title': okr_data[okr]['criteria']}}
+                  })
         for okr in okr_chart_data.okr.unique()
-    ], style={'columnCount': 2})
+    ], style={'display': 'grid',
+              'grid-template-columns': '1fr 1fr',  # Two columns
+              'gap': '0px',  # Spacing between items
+              'align-items': 'start'  # Align items to the start of the row
+              })
 ])
 
 
