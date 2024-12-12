@@ -1,12 +1,10 @@
 from dotenv import load_dotenv
 import os
 import obsidiantools.api as otools
-from markdown_it import MarkdownIt
-from src.utils import get_okr_data, get_okr_chart_data
+from src.utils import get_okr_chart_data
 import pathlib
 from dash import Dash, html, dcc, callback, Output, Input
 import plotly.express as px
-import pandas as pd
 
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
@@ -16,25 +14,19 @@ vault = otools.Vault(VAULT_LOC).connect().gather()
 okr_note = '2024 Nov'
 okr_chart_data = get_okr_chart_data(okr_note, vault)
 
-df = pd.read_csv(
-    'https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
-
 app = Dash(__name__)
-app.layout = [
-    html.H1(children=okr_note + " tracker", style={'textAlign': 'center'}),
-    dcc.Dropdown(list(okr_chart_data.okr.unique()),
-                 okr_chart_data.okr.unique()[0], id='dropdown-selection'),
-    dcc.Graph(id='graph-content')
-]
-
-
-@callback(
-    Output('graph-content', 'figure'),
-    Input('dropdown-selection', 'value')
-)
-def update_graph(value):
-    dff = okr_chart_data[okr_chart_data.okr == value]
-    return px.line(dff, x='date', y='score')
+app.layout = html.Div(children=[
+    html.H1(children='OKR Tracker - ' + okr_note,
+            style={'textAlign': 'center'}),
+    html.Div(children=[
+        dcc.Graph(id='graph-content-' + okr,
+                  figure=px.line(okr_chart_data[okr_chart_data.okr == okr],
+                                 x='date', y=['score', 'target', 'target_70_pct'],
+                                 labels={'value': 'Score',
+                                         'variable': 'Metrics'}))
+        for okr in okr_chart_data.okr.unique()
+    ], style={'columnCount': 2})
+])
 
 
 if __name__ == '__main__':
