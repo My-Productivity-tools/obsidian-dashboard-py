@@ -151,6 +151,22 @@ def parse_okr_note(okr_note, vault):
     return okr_info
 
 
+def get_habit_tracker_data(habit, start_date, vault):
+    start_date = dt.date.fromisoformat('2024-12-01')
+    today = dt.date.today()
+    dates = pd.date_range(start_date, today)
+
+    daily_notes_tasks = get_daily_notes_tasks(vault)
+    habit_tasks = filter_daily_tasks(
+        daily_notes_tasks, [habit], start_date, today)
+    scores = [len([n for n in habit_tasks.all_nodes()[1:] if dt.datetime.fromisoformat(
+        n.data['file_name'].split()[0]) == date]) for date in dates]
+
+    scores_df = pd.DataFrame({'date': dates, 'score': scores})
+    scores_df['week'] = scores_df['date'].dt.to_period('W').dt.start_time
+    return scores_df
+
+
 # Functions to get the KR data for different KR criteria types
 def get_kr_tagged_tasks(okr_tag, vault):
     """Get KR tagged tasks from the vault for KRs that depends on OKR tags.

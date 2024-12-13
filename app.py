@@ -15,6 +15,13 @@ okr_note = '2024 Nov'
 okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
 okr_chart_data = get_okr_chart_data(okr_data, okr_start_date, okr_end_date)
 
+# Get the data relevant for the Habit Tracker
+habits = ['#gratitude', 'gratitude']
+start_dates = ['2024-01-01', '2024-01-01']
+habit_data = {habit: get_habit_tracker_data(
+    habit, start_dates[i], vault) for i, habit in enumerate(habits)}
+
+# Create the Dash app
 app = Dash(__name__)
 page1_layout = html.Div(children=[
     html.H1('OKR Tracker - ' + okr_note,
