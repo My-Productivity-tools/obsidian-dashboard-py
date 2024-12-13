@@ -21,30 +21,27 @@ app.layout = html.Div(children=[
             style={'textAlign': 'center'}),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
-                  figure={
-                      'data': [
-                          {'x': okr_chart_data[okr_chart_data.okr == okr]['date'],
-                           'y': okr_chart_data[okr_chart_data.okr == okr][col],
-                              'type': 'line', 'name': name}
-                          for col, name in zip(['score', 'target', 'target_70_pct'],
-                                               ['score', 'target', '70% of target'])],
-                      'layout': {'title': okr, 'showlegend': False, 'yaxis': {'title': okr_data[okr]['criteria']}}
-                  })
+                  figure={'data': [
+                      {'x': okr_chart_data[okr_chart_data.okr == okr]['date'],
+                       'y': okr_chart_data[okr_chart_data.okr == okr][col],
+                          'type': 'line', 'name': name}
+                      for col, name in zip(['score', 'target_70_pct', 'target'],
+                                           ['score', '70% of target', 'target'])],
+                      'layout': {'title': okr, 'showlegend': False, 'font': {'size': 18},
+                                 'yaxis': {'title': okr_data[okr]['criteria']}}})
         for okr in okr_chart_data.okr.unique()
     ], style={'display': 'grid',
+              'gap': '0px',  # Spacing between items
               # 2 columns
               'grid-template-columns': " ".join(['1fr'] * ((len(okr_data.keys())+1)//2)),
-              'grid-auto-flow': 'row dense',
-              'gap': '0px',  # Spacing between items
+              'grid-auto-flow': 'row dense',  # Ensures children fill rows first
               'align-items': 'start'  # Align items to the start of the row
               })
 ])
-
 
 if __name__ == '__main__':
     app.run(debug=True)
 
 # EPIC: Get the OKR tracker done first
-# TODO: Create the OKR tracker GUI for a single OKR cycle
 # TODO: Test the OKR data extracted and chart data
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages
