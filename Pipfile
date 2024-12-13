@@ -13,6 +13,7 @@ markdown-it-py = {extras = ["plugins", "linkify"], version = "*"}
 beautifulsoup4 = "*"
 treelib = "*"
 dash = "*"
+dash-bootstrap-components = "*"
 
 [dev-packages]
 

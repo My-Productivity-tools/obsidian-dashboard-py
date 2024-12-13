@@ -16,9 +16,10 @@ okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
 okr_chart_data = get_okr_chart_data(okr_data, okr_start_date, okr_end_date)
 
 app = Dash(__name__)
-app.layout = html.Div(children=[
-    html.H1(children='OKR Tracker - ' + okr_note,
+page1_layout = html.Div(children=[
+    html.H1('OKR Tracker - ' + okr_note,
             style={'textAlign': 'center'}),
+    dcc.Link('Go to Habit Tracker', href='/habit'),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
                   figure={'data': [
@@ -38,6 +39,31 @@ app.layout = html.Div(children=[
               'align-items': 'start'  # Align items to the start of the row
               })
 ])
+
+page2_layout = html.Div(children=[
+    html.H1("Habit Tracker"),
+    dcc.Link('Go to OKR Tracker', href='/okr')])
+
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+    html.Div(id='page-content')
+])
+
+# Callback to update page content based on URL
+
+
+@app.callback(
+    Output('page-content', 'children'),
+    [Input('url', 'pathname')]
+)
+def display_page(pathname):
+    if pathname == '/okr' or pathname == '/':
+        return page1_layout
+    elif pathname == '/habit':
+        return page2_layout
+    else:
+        return html.H1("404: Page not found")  # Default 404 message
+
 
 if __name__ == '__main__':
     app.run(debug=True)
