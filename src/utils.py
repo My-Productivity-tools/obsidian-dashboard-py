@@ -6,8 +6,10 @@ import pathlib
 import os
 from src.note_utils import parse_note_for_tasks, filter_daily_tasks
 from treelib import Tree
-from datetime import datetime as dt, timedelta
+import datetime as dt
 import ast
+import pandas as pd
+from itertools import product
 
 md = MarkdownIt()
 load_dotenv()
@@ -17,7 +19,48 @@ CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
 CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
-# TODO: Generate chart data for each OKR
+
+def get_okr_chart_data(okr_data, okr_start_date, okr_end_date):
+    """Get the chart data for a specific OKR cycle.
+
+    Args:
+        okr_note (str): Name of the OKR note in the vault.
+        vault (Vault): The vault object containing the OKR note and data.
+
+    Returns:
+        DataFrame: DataFrame object containing the chart data for the OKR cycle.
+    """
+    date_list = pd.date_range(okr_start_date, okr_end_date)
+    chart_data = pd.DataFrame(
+        list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])
+
+    for okr in okr_data.keys():
+        score_list = []
+        if okr_data[okr]['criteria'] == CRITERIA_COUNT:
+            for date in date_list:
+                score_list.append(len([n for n in okr_data[okr]['data'].all_nodes(
+                )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
+        elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
+            for date in date_list:
+                score_list.append(sum([n.data['duration'] for n in okr_data[okr]['data'].all_nodes(
+                )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
+        elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
+            for date in date_list:
+                score_list.append(sum([n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[
+                                  1:] if 'Done Date' in n.data and n.data['Done Date'] == date]))
+            okr_data[okr]['target'] = sum(
+                [n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[1:]])
+
+            # TODO: Address Cancelled tasks
+        chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
+        chart_data.loc[chart_data['okr'] == okr, 'target'] = [
+            ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
+
+    chart_data['score'] = chart_data.groupby(
+        'okr')['score'].transform(pd.Series.cumsum)
+    chart_data['target_70_pct'] = chart_data['target'] * 0.7
+
+    return chart_data
 
 
 def get_okr_data(okr_note, vault):
@@ -37,24 +80,22 @@ def get_okr_data(okr_note, vault):
     okr_end_date = front_matter['end_date']
 
     # Get the KR info from the OKR note
-    okr_info = parse_okr_note(okr_note, vault)
+    okr_data = parse_okr_note(okr_note, vault)
 
     # Get the task / event / action data for each KR
     daily_notes_tasks = get_daily_notes_tasks(vault)
-    for obj in okr_info.keys():
-        for kr in okr_info[obj]['kr_info'].keys():
-            okr_info_kr = okr_info[obj]['kr_info'][kr]
-            keywords = okr_info_kr.get('keywords')
-            if okr_info_kr['criteria'] == CRITERIA_STORY_POINTS:
-                okr_info_kr['data'] = get_kr_tagged_tasks(
-                    okr_info_kr['okr_tag'], vault)
-            elif okr_info_kr['criteria'] == CRITERIA_COUNT:
-                okr_info_kr['data'] = filter_daily_tasks(
-                    daily_notes_tasks, keywords, okr_start_date, okr_end_date)
-            elif okr_info_kr['criteria'] == CRITERIA_DURATION:
-                okr_info_kr['data'] = filter_daily_tasks(
-                    daily_notes_tasks, keywords, okr_start_date, okr_end_date)
-    return okr_info, okr_start_date, okr_end_date
+    for okr in okr_data.keys():
+        keywords = okr_data[okr].get('keywords')
+        if okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
+            okr_data[okr]['data'] = get_kr_tagged_tasks(
+                okr_data[okr]['okr_tag'], vault)
+        elif okr_data[okr]['criteria'] == CRITERIA_COUNT:
+            okr_data[okr]['data'] = filter_daily_tasks(
+                daily_notes_tasks, keywords, okr_start_date, okr_end_date)
+        elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
+            okr_data[okr]['data'] = filter_daily_tasks(
+                daily_notes_tasks, keywords, okr_start_date, okr_end_date)
+    return okr_data, okr_start_date, okr_end_date
 
 
 def parse_okr_note(okr_note, vault):
@@ -78,8 +119,7 @@ def parse_okr_note(okr_note, vault):
     obj_pattern = r'(O\d+):(.+)'
     obj_matches = [re.search(obj_pattern, e.text)
                    for e in soup.findAll('h1', recursive=False)]
-    okr_info = {m[1].strip(): {'name': m[2].strip(), 'kr_info': {}}
-                for m in obj_matches}
+    obj_map = {m[1].strip(): m[2].strip() for m in obj_matches}
 
     # Get the Key Results
     kr_pattern = r'(O\d+)\s(KR\d+):(.+)'
@@ -89,20 +129,24 @@ def parse_okr_note(okr_note, vault):
                   for e in soup.findAll('h3', recursive=False)]
 
     # Get the KR Criteria, Keywords and Targets  # TODO: Targets not done yet
-    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\(keywords::(.+?)\))?'
+    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
+
+    # Create okr_info
+    okr_info = {}
     for i, match in enumerate(kr_matches):
         print(i)
-        okr_info[match[1]]['kr_info'][match[2]] = {
-            'name': match[3].strip(),
-            'okr_tag': '[[' + okr_note + '#' +
-            match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
-            'criteria': criteria_matches[i][1].strip()
-        }
+        okr = match[1] + ' ' + match[2] + ' ' + match[3].strip()
+        okr_info[okr] = {'obj_key': match[1], 'obj_name': obj_map[match[1]],
+                         'kr_key': match[2], 'kr_name': match[3].strip(),
+                         'okr_tag': '[[' + okr_note + '#' + match[0].replace(':', '').replace('[', '').replace(']', '') + ']]',
+                         'criteria': criteria_matches[i][1].strip()}
         if criteria_matches[i][2] is not None:
-            okr_info[match[1]]['kr_info'][match[2]]['keywords'] = ast.literal_eval(
-                criteria_matches[i][2].strip())
+            okr_info[okr]['target'] = float(criteria_matches[i][2].strip())
+        if criteria_matches[i][3] is not None:
+            okr_info[okr]['keywords'] = ast.literal_eval(
+                criteria_matches[i][3].strip())
 
     return okr_info
 
@@ -124,8 +168,7 @@ def get_kr_tagged_tasks(okr_tag, vault):
     for note in vault.md_file_index.keys():
         print(note)
         if note_metadata.loc[note_metadata.index == note, 'note_exists'].iloc[0]:
-            note_tasks = \
-                parse_note_for_tasks(note, vault, okr_tag)
+            note_tasks = parse_note_for_tasks(note, vault, okr_tag)
             tasks.paste('master_root', note_tasks)
             tasks.link_past_node('root')
     return tasks
@@ -190,7 +233,7 @@ def read_event(date_string, title):
                 hours += 12
             elif am_pm == 'AM' and hours == 12:
                 hours = 0
-        event_start = dt.strptime(
+        event_start = dt.datetime.strptime(
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
         # Extract the event end time
@@ -205,12 +248,12 @@ def read_event(date_string, title):
                 hours += 12
             elif am_pm == 'AM' and hours == 12:
                 hours = 0
-        event_end = dt.strptime(
+        event_end = dt.datetime.strptime(
             date_string + ' ' + str(hours) + ':' + str(minutes), '%Y-%m-%d %H:%M')
 
         # If the event ends on the next day
         if event_end < event_start:
-            event_end += timedelta(days=1)
+            event_end += dt.timedelta(days=1)
         duration = (event_end - event_start).total_seconds()/3600
 
         return {'event_start': event_start, 'event_end': event_end, 'duration': duration}
