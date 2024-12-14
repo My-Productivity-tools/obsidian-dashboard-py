@@ -1,11 +1,17 @@
 from dotenv import load_dotenv
 import os
 import obsidiantools.api as otools
-from src.utils import get_okr_data, get_okr_chart_data
+from src.utils import get_okr_data, get_okr_chart_data, get_daily_notes_tasks, get_habit_tracker_data
+from src.note_utils import filter_daily_tasks
 import pathlib
-from dash import Dash, html, dcc, callback, Output, Input
+from dash import Dash, html, dcc, callback, Output, Input, State
 import plotly.express as px
+import dash_bootstrap_components as dbc
+import datetime as dt
+import pandas as pd
+from itertools import product
 
+# Generate the vault to use
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 vault = otools.Vault(VAULT_LOC).connect().gather()
@@ -23,7 +29,8 @@ habit_data = {habit: get_habit_tracker_data(
 
 # Create the Dash app
 app = Dash(__name__)
-page1_layout = html.Div(children=[
+
+okr_layout = html.Div(children=[
     html.H1('OKR Tracker - ' + okr_note,
             style={'textAlign': 'center'}),
     dcc.Link('Go to Habit Tracker', href='/habit'),
@@ -47,29 +54,83 @@ page1_layout = html.Div(children=[
               })
 ])
 
-page2_layout = html.Div(children=[
-    html.H1("Habit Tracker"),
-    dcc.Link('Go to OKR Tracker', href='/okr')])
+habit_layout = html.Div(children=[
+    html.H1("Habit Tracker", style={'textAlign': 'center'}),
+    dcc.Link('Go to OKR Tracker', href='/okr'),
+    html.Div(children=[
+        dcc.Dropdown(habits, habits[0], id='dropdown-selection'),
+    ]),
+    dcc.Graph(id='graph-content-habit'),
+])
+
+# sidebar = html.Div(
+#     [
+#         html.H2("Navigation", className="display-4"),
+#         html.Hr(),
+#         dbc.Nav(
+#             [
+#                 dbc.NavLink('OKR Tracker', href='/okr', active="exact"),
+#                 dbc.NavLink('Habit Tracker',
+#                             href='/habit', active="exact"),
+#             ],
+#             vertical=True,
+#             pills=True,
+#         ),
+#     ],
+#     style={
+#         "position": "fixed",
+#         "top": 0,
+#         "left": 0,
+#         "bottom": 0,
+#         "width": "200px",
+#         "padding": "20px",
+#         "background-color": "#f8f9fa",
+#     },
+# )
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content')
+    # sidebar,
+    html.Div(id='page-content',
+             style={"margin-left": "220px", "padding": "20px"}),
+    html.Div(okr_layout, id='okr-container', style={'display': 'none'}),
+    html.Div(habit_layout, id='habit-container', style={'display': 'none'})
 ])
-
-# Callback to update page content based on URL
 
 
 @app.callback(
-    Output('page-content', 'children'),
-    [Input('url', 'pathname')]
+    [Output('okr-container', 'style'),
+     Output('habit-container', 'style')],
+    Input('url', 'pathname')
 )
 def display_page(pathname):
     if pathname == '/okr' or pathname == '/':
-        return page1_layout
+        return {'display': 'block'}, {'display': 'none'}
     elif pathname == '/habit':
-        return page2_layout
-    else:
-        return html.H1("404: Page not found")  # Default 404 message
+        return {'display': 'none'}, {'display': 'block'}
+    return {'display': 'none'}, {'display': 'none'}
+
+
+# @app.callback(
+#     Output('page-content', 'children'),
+#     [Input('url', 'pathname')]
+# )
+# def display_page(pathname):
+#     if pathname == '/okr' or pathname == '/':
+#         return get_okr_layout()
+#     elif pathname == '/habit':
+#         return get_habit_layout()
+#     else:
+#         return html.H1("404: Page not found")  # Default 404 message
+
+
+# @app.callback(
+#     Output('graph-content-habit', 'figure'),
+#     Input('dropdown-selection', 'value')
+# )
+# def update_graph(value):
+#     dff = habit_data[habit_data.habit == value]
+#     return px.line(dff, x='date', y='score')
 
 
 if __name__ == '__main__':
@@ -78,3 +139,13 @@ if __name__ == '__main__':
 # EPIC: Get the OKR tracker done first
 # TODO: Test the OKR data extracted and chart data
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages
+
+# @app.callback(
+#     Output("offcanvas", "is_open"),
+#     [Input("open-offcanvas", "n_clicks")],
+#     [State("offcanvas", "is_open")]
+# )
+# def toggle_offcanvas(n_clicks, is_open):
+#     if n_clicks:
+#         return not is_open
+#     return is_open
