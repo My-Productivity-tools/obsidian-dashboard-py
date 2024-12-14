@@ -23,7 +23,8 @@ okr_chart_data = get_okr_chart_data(okr_data, okr_start_date, okr_end_date)
 
 # Get the data relevant for the Habit Tracker
 habits = ['#gratitude', 'gratitude']
-start_dates = ['2024-01-01', '2024-01-01']
+start_dates = [dt.date.fromisoformat(date)
+               for date in ['2024-01-01', '2024-01-01']]
 habit_data = {habit: get_habit_tracker_data(
     habit, start_dates[i], vault) for i, habit in enumerate(habits)}
 
@@ -124,13 +125,13 @@ def display_page(pathname):
 #         return html.H1("404: Page not found")  # Default 404 message
 
 
-# @app.callback(
-#     Output('graph-content-habit', 'figure'),
-#     Input('dropdown-selection', 'value')
-# )
-# def update_graph(value):
-#     dff = habit_data[habit_data.habit == value]
-#     return px.line(dff, x='date', y='score')
+@app.callback(
+    Output('graph-content-habit', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_graph(value):
+    dff = habit_data[value]
+    return px.line(dff, x='date', y='score')
 
 
 if __name__ == '__main__':
