@@ -131,7 +131,9 @@ def display_page(pathname):
 )
 def update_graph(value):
     dff = habit_data[value]
-    return px.line(dff, x='date', y='score')
+    return {'data': [{'x': dff['date'], 'y': dff['score'], 'type': 'bar', 'name': 'score'}],
+            'layout': {'title': value, 'showlegend': False, 'font': {'size': 18},
+                       'yaxis': {'title': 'count'}}}
 
 
 if __name__ == '__main__':
