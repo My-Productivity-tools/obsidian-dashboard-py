@@ -152,7 +152,6 @@ def parse_okr_note(okr_note, vault):
 
 
 def get_habit_tracker_data(habit, start_date, vault):
-    start_date = dt.date.fromisoformat('2024-12-01')
     today = dt.date.today()
     dates = pd.date_range(start_date, today)
 

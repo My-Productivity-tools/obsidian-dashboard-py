@@ -11,6 +11,8 @@ import datetime as dt
 import pandas as pd
 from itertools import product
 
+# TODO Optimize the data loading part by caching in a pickle file and providing
+# a button in the UI to refresh the data both locally and in the UI
 # Generate the vault to use
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
@@ -21,10 +23,12 @@ okr_note = '2024 Nov'
 okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
 okr_chart_data = get_okr_chart_data(okr_data, okr_start_date, okr_end_date)
 
+# TODO: Add the weekly charts in the Habit Tracker
+# TODO: Add criteria for the habits, count & duration for now
 # Get the data relevant for the Habit Tracker
 habits = ['#gratitude', 'gratitude']
 start_dates = [dt.date.fromisoformat(date)
-               for date in ['2024-01-01', '2024-01-01']]
+               for date in ['2024-11-16', '2024-11-16']]
 habit_data = {habit: get_habit_tracker_data(
     habit, start_dates[i], vault) for i, habit in enumerate(habits)}
 
@@ -32,8 +36,7 @@ habit_data = {habit: get_habit_tracker_data(
 app = Dash(__name__)
 
 okr_layout = html.Div(children=[
-    html.H1('OKR Tracker - ' + okr_note,
-            style={'textAlign': 'center'}),
+    html.H1('OKR Tracker - ' + okr_note, style={'textAlign': 'center'}),
     dcc.Link('Go to Habit Tracker', href='/habit'),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
@@ -96,7 +99,7 @@ app.layout = html.Div([
              style={"margin-left": "220px", "padding": "20px"}),
     html.Div(okr_layout, id='okr-container', style={'display': 'none'}),
     html.Div(habit_layout, id='habit-container', style={'display': 'none'})
-])
+], style={'fontFamily': 'Open Sans, sans-serif'})
 
 
 @app.callback(
@@ -132,14 +135,14 @@ def display_page(pathname):
 def update_graph(value):
     dff = habit_data[value]
     return {'data': [{'x': dff['date'], 'y': dff['score'], 'type': 'bar', 'name': 'score'}],
-            'layout': {'title': value, 'showlegend': False, 'font': {'size': 18},
+            'layout': {'title': value if value.startswith('#') else value.title(),
+                       'showlegend': False, 'font': {'size': 18},
                        'yaxis': {'title': 'count'}}}
 
 
 if __name__ == '__main__':
     app.run(debug=True)
 
-# EPIC: Get the OKR tracker done first
 # TODO: Test the OKR data extracted and chart data
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages
 
