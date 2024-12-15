@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 import obsidiantools.api as otools
-from src.utils import get_okr_data, get_okr_chart_data, get_daily_notes_tasks, get_habit_tracker_data
+from src.utils import get_okr_data, get_okr_pivot_data, get_daily_notes_tasks, get_habit_tracker_data
 from src.note_utils import filter_daily_tasks
 import pathlib
 from dash import Dash, html, dcc, callback, Output, Input, State
@@ -11,26 +11,67 @@ import datetime as dt
 import pandas as pd
 from itertools import product
 
-# TODO Optimize the data loading part by caching in a pickle file and providing
+# TODO: Optimize the data loading part by caching in a pickle file and providing
 # a button in the UI to refresh the data both locally and in the UI
 # Generate the vault to use
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 vault = otools.Vault(VAULT_LOC).connect().gather()
 
-# Get the data relevant for the OKR tracker
+# Define the requirements for the OKR & Habit Tracker
 okr_note = '2024 Nov'
-okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
-okr_chart_data = get_okr_chart_data(okr_data, okr_start_date, okr_end_date)
+habits = ['#gratitude', 'gratitude']
+start_dates = ['2024-11-16', '2024-11-16']  # Start dates for each habit
 
 # TODO: Add the weekly charts in the Habit Tracker
 # TODO: Add criteria for the habits, count & duration for now
-# Get the data relevant for the Habit Tracker
-habits = ['#gratitude', 'gratitude']
-start_dates = [dt.date.fromisoformat(date)
-               for date in ['2024-11-16', '2024-11-16']]
-habit_data = {habit: get_habit_tracker_data(
-    habit, start_dates[i], vault) for i, habit in enumerate(habits)}
+# Get the data relevant for the OKR & Habit Trackers
+okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+okr_pivot_data = get_okr_pivot_data(
+    okr_data, okr_start_date, okr_end_date)
+habit_data = {habit: get_habit_tracker_data(habit, dt.date.fromisoformat(
+    start_dates[i]), vault) for i, habit in enumerate(habits)}
+
+
+def get_okr_graph_data(okr, okr_data, okr_pivot_data):
+    """Get graph data to be used in okr_layout
+
+    Args:
+        okr (str): OKR name
+        okr_data (dict): OKR data
+        okr_pivot_data (DataFrame): OKR pivot data to be used to generate OKR chart data
+
+    Returns:
+        dict: Graph data to be used in okr_layout
+    """
+    return {'data': [
+        {'x': okr_pivot_data[okr_pivot_data.okr == okr]['date'],
+         'y': okr_pivot_data[okr_pivot_data.okr == okr][col],
+         'type': 'line', 'name': name}
+        for col, name in zip(['score', 'target_70_pct', 'target'],
+                             ['score', '70% of target', 'target'])],
+        'layout': {'title': okr, 'showlegend': False, 'font': {'size': 18},
+                   'yaxis': {'title': okr_data[okr]['criteria']}}}
+
+
+def get_habit_graph_data(habit, habit_data):
+    """Get graph data to be used in habit_layout
+
+    Args:
+        habit (str): Habit name
+        habit_data (dict): Habit data - dict of DataFrame objects
+
+    Returns:
+        dict: Graph data to be used in habit_layout
+    """
+    return {'data': [
+        {'x': habit_data[habit]['date'],
+         'y': habit_data[habit]['score'],
+         'type': 'bar', 'name': 'score'},
+    ], 'layout': {'title': habit if habit.startswith('#') else
+                  habit.title(), 'showlegend': False, 'font': {'size': 18},
+                  'yaxis': {'title': 'count'}}}
+
 
 # Create the Dash app
 app = Dash(__name__)
@@ -40,15 +81,8 @@ okr_layout = html.Div(children=[
     dcc.Link('Go to Habit Tracker', href='/habit'),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
-                  figure={'data': [
-                      {'x': okr_chart_data[okr_chart_data.okr == okr]['date'],
-                       'y': okr_chart_data[okr_chart_data.okr == okr][col],
-                          'type': 'line', 'name': name}
-                      for col, name in zip(['score', 'target_70_pct', 'target'],
-                                           ['score', '70% of target', 'target'])],
-                      'layout': {'title': okr, 'showlegend': False, 'font': {'size': 18},
-                                 'yaxis': {'title': okr_data[okr]['criteria']}}})
-        for okr in okr_chart_data.okr.unique()
+                  figure=get_okr_graph_data(okr, okr_data, okr_pivot_data))
+        for okr in okr_pivot_data.okr.unique()
     ], style={'display': 'grid',
               'gap': '0px',  # Spacing between items
               # 2 columns
@@ -95,8 +129,9 @@ habit_layout = html.Div(children=[
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     # sidebar,
-    html.Div(id='page-content',
-             style={"margin-left": "220px", "padding": "20px"}),
+    # html.Div(id='page-content',
+    #          style={"margin-left": "220px", "padding": "20px"}),
+    html.Button('Reload Data', id='reload-button', n_clicks=0),
     html.Div(okr_layout, id='okr-container', style={'display': 'none'}),
     html.Div(habit_layout, id='habit-container', style={'display': 'none'})
 ], style={'fontFamily': 'Open Sans, sans-serif'})
@@ -115,29 +150,37 @@ def display_page(pathname):
     return {'display': 'none'}, {'display': 'none'}
 
 
-# @app.callback(
-#     Output('page-content', 'children'),
-#     [Input('url', 'pathname')]
-# )
-# def display_page(pathname):
-#     if pathname == '/okr' or pathname == '/':
-#         return get_okr_layout()
-#     elif pathname == '/habit':
-#         return get_habit_layout()
-#     else:
-#         return html.H1("404: Page not found")  # Default 404 message
+@app.callback(
+    Output('graph-content-habit', 'figure', allow_duplicate=True),
+    Input('dropdown-selection', 'value'), prevent_initial_call=True
+)
+def update_graph(value):
+    return get_habit_graph_data(value, habit_data)
 
 
 @app.callback(
-    Output('graph-content-habit', 'figure'),
-    Input('dropdown-selection', 'value')
+    [Output('graph-content-habit', 'figure', allow_duplicate=True)] +
+    [Output('graph-content-' + okr, 'figure')
+     for okr in okr_pivot_data.okr.unique()],
+    [Input('reload-button', 'n_clicks'),
+     Input('dropdown-selection', 'value')], prevent_initial_call=True
 )
-def update_graph(value):
-    dff = habit_data[value]
-    return {'data': [{'x': dff['date'], 'y': dff['score'], 'type': 'bar', 'name': 'score'}],
-            'layout': {'title': value if value.startswith('#') else value.title(),
-                       'showlegend': False, 'font': {'size': 18},
-                       'yaxis': {'title': 'count'}}}
+def reload_data(n_clicks, value):
+    if n_clicks > 0:
+        global okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data
+        vault = otools.Vault(VAULT_LOC).connect().gather()
+        okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+        okr_pivot_data = get_okr_pivot_data(
+            okr_data, okr_start_date, okr_end_date)
+        habit_data = {habit: get_habit_tracker_data(
+            habit, dt.date.fromisoformat(start_dates[i]), vault) for i, habit
+            in enumerate(habits)}
+        return [get_habit_graph_data(value, habit_data)] + \
+            [get_okr_graph_data(okr, okr_data, okr_pivot_data)
+             for okr in okr_pivot_data.okr.unique()]
+    else:
+        return [get_habit_graph_data(value, habit_data)] + \
+            [None for okr in okr_pivot_data.okr.unique()]
 
 
 if __name__ == '__main__':
@@ -145,13 +188,3 @@ if __name__ == '__main__':
 
 # TODO: Test the OKR data extracted and chart data
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages
-
-# @app.callback(
-#     Output("offcanvas", "is_open"),
-#     [Input("open-offcanvas", "n_clicks")],
-#     [State("offcanvas", "is_open")]
-# )
-# def toggle_offcanvas(n_clicks, is_open):
-#     if n_clicks:
-#         return not is_open
-#     return is_open

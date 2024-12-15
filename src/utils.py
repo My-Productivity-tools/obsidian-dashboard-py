@@ -20,7 +20,7 @@ CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
 
-def get_okr_chart_data(okr_data, okr_start_date, okr_end_date):
+def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
     """Get the chart data for a specific OKR cycle.
 
     Args:
@@ -51,7 +51,7 @@ def get_okr_chart_data(okr_data, okr_start_date, okr_end_date):
             okr_data[okr]['target'] = sum(
                 [n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[1:]])
 
-            # TODO: Address Cancelled tasks
+            # FIXME: Address Cancelled tasks
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
         chart_data.loc[chart_data['okr'] == okr, 'target'] = [
             ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
@@ -128,7 +128,7 @@ def parse_okr_note(okr_note, vault):
     kr_matches = [re.search(kr_pattern, e.text)
                   for e in soup.findAll('h3', recursive=False)]
 
-    # Get the KR Criteria, Keywords and Targets  # TODO: Targets not done yet
+    # Get the KR Criteria, Keywords and Targets
     criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
