@@ -14,27 +14,30 @@ import pickle
 # Generate the vault to use
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
+CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
+CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
+CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 # vault = otools.Vault(VAULT_LOC).connect().gather()
 
 # Define the requirements for the OKR & Habit Tracker
 okr_note = '2024 Nov'
-habits = ['#gratitude', 'gratitude']
-start_dates = ['2024-11-16', '2024-11-16']  # Start dates for each habit
+habits = ['#gratitude', 'gratitude', 'Self-Compassion']
+criteria = [CRITERIA_COUNT, CRITERIA_COUNT, CRITERIA_DURATION]
+start_dates = ['2024-11-16', '2024-11-16',
+               '2024-02-23']  # Start dates for each habit
 
-# TODO: Add the weekly charts in the Habit Tracker
-# TODO: Add criteria for the habits, count & duration for now
+# For efficient testing & debugging - Disable in production
+with open('all_data.pkl', 'rb') as f:
+    vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
+        pickle.load(f)
 
 # # Get the data relevant for the OKR & Habit Trackers
 # okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
 # okr_pivot_data = get_okr_pivot_data(
 #     okr_data, okr_start_date, okr_end_date)
-# habit_data = {habit: get_habit_tracker_data(habit, dt.date.fromisoformat(
-#     start_dates[i]), vault) for i, habit in enumerate(habits)}
-
-# For efficient testing & debugging - Disable in production
-with open('all_data.pkl', 'rb') as f:  # Python 3: open(..., 'wb')
-    vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
-        pickle.load(f)
+# FIXME: Not case-insensitive
+habit_data = {habit: get_habit_tracker_data(habit, criteria[i], dt.date.fromisoformat(
+    start_dates[i]), vault) for i, habit in enumerate(habits)}
 
 
 def get_okr_graph_data(okr, okr_data, okr_pivot_data):
@@ -165,7 +168,7 @@ def display_page(pathname):
 @app.callback(
     [Output('graph-content-habit', 'figure', allow_duplicate=True),
      Output('graph-content-habit-weekly', 'figure', allow_duplicate=True)],
-    Input('dropdown-selection', 'value'), prevent_initial_call=True
+    Input('dropdown-selection', 'value'), prevent_initial_call='initial_duplicate'
 )
 def update_graph(value):
     return get_habit_graph_data(value, habit_data)

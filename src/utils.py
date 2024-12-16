@@ -151,15 +151,19 @@ def parse_okr_note(okr_note, vault):
     return okr_info
 
 
-def get_habit_tracker_data(habit, start_date, vault):
+def get_habit_tracker_data(habit, criteria, start_date, vault):
     today = dt.date.today()
     dates = pd.date_range(start_date, today)
 
     daily_notes_tasks = get_daily_notes_tasks(vault)
     habit_tasks = filter_daily_tasks(
         daily_notes_tasks, [habit], start_date, today)
-    scores = [len([n for n in habit_tasks.all_nodes()[1:] if dt.datetime.fromisoformat(
-        n.data['file_name'].split()[0]) == date]) for date in dates]
+    if criteria == CRITERIA_COUNT:
+        scores = [len([n for n in habit_tasks.all_nodes()[1:] if dt.datetime.fromisoformat(
+            n.data['file_name'].split()[0]) == date]) for date in dates]
+    elif criteria == CRITERIA_DURATION:
+        scores = [sum([n.data.get('duration', 0) for n in habit_tasks.all_nodes()[1:] if dt.datetime.fromisoformat(
+            n.data['file_name'].split()[0]) == date]) for date in dates]
 
     scores_df = pd.DataFrame({'date': dates, 'score': scores})
     scores_df['week'] = scores_df['date'].dt.to_period('W').dt.start_time
