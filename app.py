@@ -9,14 +9,12 @@ import plotly.express as px
 import dash_bootstrap_components as dbc
 import datetime as dt
 import pandas as pd
-from itertools import product
+import pickle
 
-# TODO: Optimize the data loading part by caching in a pickle file and providing
-# a button in the UI to refresh the data both locally and in the UI
 # Generate the vault to use
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
-vault = otools.Vault(VAULT_LOC).connect().gather()
+# vault = otools.Vault(VAULT_LOC).connect().gather()
 
 # Define the requirements for the OKR & Habit Tracker
 okr_note = '2024 Nov'
@@ -25,12 +23,18 @@ start_dates = ['2024-11-16', '2024-11-16']  # Start dates for each habit
 
 # TODO: Add the weekly charts in the Habit Tracker
 # TODO: Add criteria for the habits, count & duration for now
-# Get the data relevant for the OKR & Habit Trackers
-okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
-okr_pivot_data = get_okr_pivot_data(
-    okr_data, okr_start_date, okr_end_date)
-habit_data = {habit: get_habit_tracker_data(habit, dt.date.fromisoformat(
-    start_dates[i]), vault) for i, habit in enumerate(habits)}
+
+# # Get the data relevant for the OKR & Habit Trackers
+# okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+# okr_pivot_data = get_okr_pivot_data(
+#     okr_data, okr_start_date, okr_end_date)
+# habit_data = {habit: get_habit_tracker_data(habit, dt.date.fromisoformat(
+#     start_dates[i]), vault) for i, habit in enumerate(habits)}
+
+# For efficient testing & debugging - Disable in production
+with open('all_data.pkl', 'rb') as f:  # Python 3: open(..., 'wb')
+    vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
+        pickle.load(f)
 
 
 def get_okr_graph_data(okr, okr_data, okr_pivot_data):
@@ -166,21 +170,17 @@ def update_graph(value):
      Input('dropdown-selection', 'value')], prevent_initial_call=True
 )
 def reload_data(n_clicks, value):
-    if n_clicks > 0:
-        global okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data
-        vault = otools.Vault(VAULT_LOC).connect().gather()
-        okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
-        okr_pivot_data = get_okr_pivot_data(
-            okr_data, okr_start_date, okr_end_date)
-        habit_data = {habit: get_habit_tracker_data(
-            habit, dt.date.fromisoformat(start_dates[i]), vault) for i, habit
-            in enumerate(habits)}
-        return [get_habit_graph_data(value, habit_data)] + \
-            [get_okr_graph_data(okr, okr_data, okr_pivot_data)
-             for okr in okr_pivot_data.okr.unique()]
-    else:
-        return [get_habit_graph_data(value, habit_data)] + \
-            [None for okr in okr_pivot_data.okr.unique()]
+    global okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data
+    vault = otools.Vault(VAULT_LOC).connect().gather()
+    okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+    okr_pivot_data = get_okr_pivot_data(
+        okr_data, okr_start_date, okr_end_date)
+    habit_data = {habit: get_habit_tracker_data(
+        habit, dt.date.fromisoformat(start_dates[i]), vault) for i, habit
+        in enumerate(habits)}
+    return [get_habit_graph_data(value, habit_data)] + \
+        [get_okr_graph_data(okr, okr_data, okr_pivot_data)
+            for okr in okr_pivot_data.okr.unique()]
 
 
 if __name__ == '__main__':
