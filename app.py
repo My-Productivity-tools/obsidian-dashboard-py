@@ -68,13 +68,19 @@ def get_habit_graph_data(habit, habit_data):
     Returns:
         dict: Graph data to be used in habit_layout
     """
+    df = habit_data[habit]
     return {'data': [
-        {'x': habit_data[habit]['date'],
-         'y': habit_data[habit]['score'],
+        {'x': df['date'], 'y': df['score'],
          'type': 'bar', 'name': 'score'},
     ], 'layout': {'title': habit if habit.startswith('#') else
                   habit.title(), 'showlegend': False, 'font': {'size': 18},
-                  'yaxis': {'title': 'count'}}}
+                  'yaxis': {'title': 'count'}}}, \
+        {'data': [
+            {'x': df['week'].unique(), 'y': df.groupby('week')['score'].sum(),
+             'type': 'bar', 'name': 'score'},
+        ], 'layout': {'title': habit if habit.startswith('#') else
+                      habit.title(), 'showlegend': False, 'font': {'size': 18},
+                      'yaxis': {'title': 'count'}}}
 
 
 # Create the Dash app
@@ -103,6 +109,7 @@ habit_layout = html.Div(children=[
         dcc.Dropdown(habits, habits[0], id='dropdown-selection'),
     ]),
     dcc.Graph(id='graph-content-habit'),
+    dcc.Graph(id='graph-content-habit-weekly'),
 ])
 
 # sidebar = html.Div(
@@ -135,7 +142,8 @@ app.layout = html.Div([
     # sidebar,
     # html.Div(id='page-content',
     #          style={"margin-left": "220px", "padding": "20px"}),
-    html.Button('Reload Data', id='reload-button', n_clicks=0),
+    html.Button('Reload Data', id='reload-button',
+                n_clicks=0),  # TODO: Style this
     html.Div(okr_layout, id='okr-container', style={'display': 'none'}),
     html.Div(habit_layout, id='habit-container', style={'display': 'none'})
 ], style={'fontFamily': 'Open Sans, sans-serif'})
@@ -155,7 +163,8 @@ def display_page(pathname):
 
 
 @app.callback(
-    Output('graph-content-habit', 'figure', allow_duplicate=True),
+    [Output('graph-content-habit', 'figure', allow_duplicate=True),
+     Output('graph-content-habit-weekly', 'figure', allow_duplicate=True)],
     Input('dropdown-selection', 'value'), prevent_initial_call=True
 )
 def update_graph(value):
@@ -163,7 +172,8 @@ def update_graph(value):
 
 
 @app.callback(
-    [Output('graph-content-habit', 'figure', allow_duplicate=True)] +
+    [Output('graph-content-habit', 'figure', allow_duplicate=True),
+     Output('graph-content-habit-weekly', 'figure', allow_duplicate=True)] +
     [Output('graph-content-' + okr, 'figure')
      for okr in okr_pivot_data.okr.unique()],
     [Input('reload-button', 'n_clicks'),
@@ -178,7 +188,7 @@ def reload_data(n_clicks, value):
     habit_data = {habit: get_habit_tracker_data(
         habit, dt.date.fromisoformat(start_dates[i]), vault) for i, habit
         in enumerate(habits)}
-    return [get_habit_graph_data(value, habit_data)] + \
+    return list(get_habit_graph_data(value, habit_data)) + \
         [get_okr_graph_data(okr, okr_data, okr_pivot_data)
             for okr in okr_pivot_data.okr.unique()]
 
