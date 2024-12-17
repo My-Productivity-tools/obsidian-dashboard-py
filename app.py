@@ -17,24 +17,24 @@ VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
 CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
-# vault = otools.Vault(VAULT_LOC).connect().gather()
+vault = otools.Vault(VAULT_LOC).connect().gather()
 
 # Define the requirements for the OKR & Habit Tracker
-okr_note = '2024 Nov'
-habits = ['#gratitude', 'gratitude', 'Self-Compassion']
+okr_note = '2024 Dec'
+habits = ['#gratitude', 'gratitude', 'self-compassion']
 criteria = [CRITERIA_COUNT, CRITERIA_COUNT, CRITERIA_DURATION]
 start_dates = ['2024-11-16', '2024-11-16',
                '2024-02-23']  # Start dates for each habit
 
 # For efficient testing & debugging - Disable in production
-with open('all_data.pkl', 'rb') as f:
-    vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
-        pickle.load(f)
+# with open('all_data.pkl', 'rb') as f:
+#     vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
+#         pickle.load(f)
 
 # # Get the data relevant for the OKR & Habit Trackers
-# okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
-# okr_pivot_data = get_okr_pivot_data(
-#     okr_data, okr_start_date, okr_end_date)
+okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+okr_pivot_data = get_okr_pivot_data(
+    okr_data, okr_start_date, okr_end_date)
 # FIXME: Not case-insensitive
 habit_data = {habit: get_habit_tracker_data(habit, criteria[i], dt.date.fromisoformat(
     start_dates[i]), vault) for i, habit in enumerate(habits)}
@@ -87,8 +87,10 @@ def get_habit_graph_data(habit, habit_data):
 
 
 # Create the Dash app
-app = Dash(__name__)
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app.title = "My Productivity Dashboard"
 
+# Define the layout
 okr_layout = html.Div(children=[
     html.H1('OKR Tracker - ' + okr_note, style={'textAlign': 'center'}),
     dcc.Link('Go to Habit Tracker', href='/habit'),
@@ -189,8 +191,8 @@ def reload_data(n_clicks, value):
     okr_pivot_data = get_okr_pivot_data(
         okr_data, okr_start_date, okr_end_date)
     habit_data = {habit: get_habit_tracker_data(
-        habit, dt.date.fromisoformat(start_dates[i]), vault) for i, habit
-        in enumerate(habits)}
+        habit, criteria[i], dt.date.fromisoformat(start_dates[i]), vault)
+        for i, habit in enumerate(habits)}
     return list(get_habit_graph_data(value, habit_data)) + \
         [get_okr_graph_data(okr, okr_data, okr_pivot_data)
             for okr in okr_pivot_data.okr.unique()]
