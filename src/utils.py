@@ -42,14 +42,14 @@ def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
                 )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
             for date in date_list:
-                score_list.append(sum([n.data['duration'] for n in okr_data[okr]['data'].all_nodes(
+                score_list.append(sum([n.data.get('duration', 0) for n in okr_data[okr]['data'].all_nodes(
                 )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
             for date in date_list:
-                score_list.append(sum([n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[
+                score_list.append(sum([n.data.get('Story Points', 0) for n in okr_data[okr]['data'].all_nodes()[
                                   1:] if 'Done Date' in n.data and n.data['Done Date'] == date]))
             okr_data[okr]['target'] = sum(
-                [n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[1:]])
+                [n.data.get('Story Points') for n in okr_data[okr]['data'].all_nodes()[1:]])
 
             # FIXME: Address Cancelled tasks
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
