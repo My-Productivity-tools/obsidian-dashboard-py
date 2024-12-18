@@ -35,7 +35,6 @@ start_dates = ['2024-11-16', '2024-11-16',
 okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
 okr_pivot_data = get_okr_pivot_data(
     okr_data, okr_start_date, okr_end_date)
-# FIXME: Not case-insensitive
 habit_data = {habit: get_habit_tracker_data(habit, criteria[i], dt.date.fromisoformat(
     start_dates[i]), vault) for i, habit in enumerate(habits)}
 
@@ -147,8 +146,8 @@ app.layout = html.Div([
     # sidebar,
     # html.Div(id='page-content',
     #          style={"margin-left": "220px", "padding": "20px"}),
-    html.Button('Reload Data', id='reload-button',
-                n_clicks=0),  # TODO: Style this
+    html.Button('Reload Data', id='reload-button', n_clicks=0,
+                className="btn btn-primary"),
     html.Div(okr_layout, id='okr-container', style={'display': 'none'}),
     html.Div(habit_layout, id='habit-container', style={'display': 'none'})
 ], style={'fontFamily': 'Open Sans, sans-serif'})

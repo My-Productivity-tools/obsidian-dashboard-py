@@ -31,28 +31,31 @@ def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
         DataFrame: DataFrame object containing the chart data for the OKR cycle.
     """
     date_list = pd.date_range(okr_start_date, okr_end_date)
+    today = dt.datetime.today()
     chart_data = pd.DataFrame(
         list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])
 
     for okr in okr_data.keys():
         score_list = []
         if okr_data[okr]['criteria'] == CRITERIA_COUNT:
-            for date in date_list:
+            for date in date_list[date_list <= today]:
                 score_list.append(len([n for n in okr_data[okr]['data'].all_nodes(
                 )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
-            for date in date_list:
+            for date in date_list[date_list <= today]:
                 score_list.append(sum([n.data.get('duration', 0) for n in okr_data[okr]['data'].all_nodes(
                 )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
-            for date in date_list:
+            for date in date_list[date_list <= today]:
                 score_list.append(sum([n.data.get('Story Points', 0) for n in okr_data[okr]['data'].all_nodes()[
                                   1:] if 'Done Date' in n.data and n.data['Done Date'] == date]))
             okr_data[okr]['target'] = sum(
                 [n.data.get('Story Points') for n in okr_data[okr]['data'].all_nodes()[1:]])
 
+            # FIXME: 'score' should be None / NaN for dates after today
             # FIXME: Address Cancelled tasks
-        chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
+        chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list + \
+            [None] * (len(date_list) - len(score_list))
         chart_data.loc[chart_data['okr'] == okr, 'target'] = [
             ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
 
