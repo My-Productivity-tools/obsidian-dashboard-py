@@ -26,12 +26,12 @@ criteria = [CRITERIA_COUNT, CRITERIA_COUNT, CRITERIA_DURATION]
 start_dates = ['2024-11-16', '2024-11-16',
                '2024-02-23']  # Start dates for each habit
 
-# For efficient testing & debugging - Disable in production
+# # For efficient testing & debugging - Disable in production
 # with open('all_data.pkl', 'rb') as f:
 #     vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
 #         pickle.load(f)
 
-# # Get the data relevant for the OKR & Habit Trackers
+# Get the data relevant for the OKR & Habit Trackers
 okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
 okr_pivot_data = get_okr_pivot_data(
     okr_data, okr_start_date, okr_end_date)

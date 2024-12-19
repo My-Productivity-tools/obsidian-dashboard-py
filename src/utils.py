@@ -164,10 +164,10 @@ def get_habit_tracker_data(habit, criteria, start_date, vault):
         daily_notes_tasks, [habit], start_date, today)
     if criteria == CRITERIA_COUNT:
         scores = [len([n for n in habit_tasks.all_nodes()[1:]
-                      if n.data['file_name_date'] == date]) for date in dates]
+                      if n.data['file_name_date'] == date.date()]) for date in dates]
     elif criteria == CRITERIA_DURATION:
         scores = [sum([n.data.get('duration', 0) for n in habit_tasks.all_nodes()[
-                      1:] if n.data['file_name_date'] == date]) for date in dates]
+                      1:] if n.data['file_name_date'] == date.date()]) for date in dates]
 
     scores_df = pd.DataFrame({'date': dates, 'score': scores})
     scores_df['week'] = scores_df['date'].dt.to_period('W').dt.start_time
