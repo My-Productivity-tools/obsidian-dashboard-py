@@ -189,8 +189,7 @@ def filter_daily_tasks(task_tree, keywords, start_date=None, end_date=None):
     subtree = Tree(task_tree, deep=True)
     for node in subtree.expand_tree():
         if subtree.depth(node) > 0:
-            date = dt.date.fromisoformat(
-                subtree[node].data.get('file_name').split()[0])
+            date = subtree[node].data.get('file_name_date')
             if (start_date is None or date >= start_date) and \
                 (end_date is None or date <= end_date) and \
                     any(keyword.lower() in subtree[node].data.get('title').lower() for keyword in keywords):
