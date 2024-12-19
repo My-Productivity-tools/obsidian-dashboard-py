@@ -48,17 +48,12 @@ def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
                     'duration', 0) for n in node_list if n.data['file_name_date'] == date]))
         elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
             for date in date_list[date_list <= today]:
-                score_list.append(sum([n.data.get(
-                    'Story Points', 0) for n in node_list if 'Done Date' in n.data and n.data['Done Date'] == date]))
+                score_list.append(sum([n.data.get('Story Points', 0) for
+                                       n in node_list if 'Done Date' in n.data
+                                       and n.data['Done Date'] == date and
+                                       n.data['status'] != 'Cancelled']))
             okr_data[okr]['target'] = sum(
-                [n.data.get('Story Points') for n in node_list])
-
-            # FIXME: Skip cancelled tasks in the computation of score_list & target
-            for date in date_list[date_list <= today]:
-                score_list.append(sum([n.data.get('Story Points', 0) for n in node_list if 'Done Date' in n.data and n.data['Done Date']
-                                  == date and 'Cancelled' not in n.data.get('tags', [])]))
-            okr_data[okr]['target'] = sum(
-                [n.data.get('Story Points') for n in node_list if 'Cancelled' not in n.data.get('tags', [])])
+                [n.data.get('Story Points') for n in node_list if n.data['status'] != 'Cancelled'])
 
         chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list + \
             [None] * (len(date_list) - len(score_list))
