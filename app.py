@@ -11,12 +11,14 @@ import datetime as dt
 import pandas as pd
 import pickle
 
-# Generate the vault to use
+# Load the environment variables
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
 CRITERIA_STORY_POINTS = os.getenv('CRITERIA_STORY_POINTS')
 CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
+
+# Generate the vault to use
 vault = otools.Vault(VAULT_LOC).connect().gather()
 
 # Define the requirements for the OKR & Habit Tracker
@@ -39,6 +41,7 @@ habit_data = {habit: get_habit_tracker_data(habit, criteria[i], dt.date.fromisof
     start_dates[i]), vault) for i, habit in enumerate(habits)}
 
 
+# Functions to generate graph data for the OKR & Habit Trackers
 def get_okr_graph_data(okr, okr_data, okr_pivot_data):
     """Get graph data to be used in okr_layout
 
@@ -153,6 +156,7 @@ app.layout = html.Div([
 ], style={'fontFamily': 'Open Sans, sans-serif'})
 
 
+# Callbacks to update the page / data based on URL / link / button clicks
 @app.callback(
     [Output('okr-container', 'style'),
      Output('habit-container', 'style')],
@@ -197,8 +201,8 @@ def reload_data(n_clicks, value):
             for okr in okr_pivot_data.okr.unique()]
 
 
+# Run the app
 if __name__ == '__main__':
     app.run(debug=True)
 
-# TODO: Test the OKR data extracted and chart data
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages

@@ -41,16 +41,16 @@ def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
         if okr_data[okr]['criteria'] == CRITERIA_COUNT:
             for date in date_list[date_list <= today]:
                 score_list.append(
-                    len([n for n in node_list if n.data['file_name_date'] == date]))
+                    len([n for n in node_list if n.data['file_name_date'] == date.date()]))
         elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
             for date in date_list[date_list <= today]:
                 score_list.append(sum([n.data.get(
-                    'duration', 0) for n in node_list if n.data['file_name_date'] == date]))
+                    'duration', 0) for n in node_list if n.data['file_name_date'] == date.date()]))
         elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
             for date in date_list[date_list <= today]:
                 score_list.append(sum([n.data.get('Story Points', 0) for
                                        n in node_list if 'Done Date' in n.data
-                                       and n.data['Done Date'] == date and
+                                       and n.data['Done Date'] == date.date() and
                                        n.data['status'] != 'Cancelled']))
             okr_data[okr]['target'] = sum(
                 [n.data.get('Story Points') for n in node_list if n.data['status'] != 'Cancelled'])
@@ -230,6 +230,7 @@ def get_daily_notes_tasks(vault):
     return tasks
 
 
+# This belongs to a task_utils.py file if it existed
 def read_event(date_string, title):
     """Read the event start, end date-times from the title of a task if it is an event.
 
