@@ -32,7 +32,7 @@ def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
     """
     date_list = pd.date_range(okr_start_date, okr_end_date)
     today = dt.datetime.today()
-    chart_data = pd.DataFrame(
+    pivot_data = pd.DataFrame(
         list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])
 
     for okr in okr_data.keys():
@@ -55,16 +55,16 @@ def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
             okr_data[okr]['target'] = sum(
                 [n.data.get('Story Points') for n in node_list if n.data['status'] != 'Cancelled'])
 
-        chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list + \
+        pivot_data.loc[pivot_data['okr'] == okr, 'score'] = score_list + \
             [None] * (len(date_list) - len(score_list))
-        chart_data.loc[chart_data['okr'] == okr, 'target'] = [
+        pivot_data.loc[pivot_data['okr'] == okr, 'target'] = [
             ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
 
-    chart_data['score'] = chart_data.groupby(
+    pivot_data['score'] = pivot_data.groupby(
         'okr')['score'].transform(pd.Series.cumsum)
-    chart_data['target_70_pct'] = chart_data['target'] * 0.7
+    pivot_data['target_70_pct'] = pivot_data['target'] * 0.7
 
-    return chart_data
+    return pivot_data
 
 
 def get_okr_data(okr_note, vault):
@@ -93,10 +93,7 @@ def get_okr_data(okr_note, vault):
         if okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
             okr_data[okr]['data'] = get_kr_tagged_tasks(
                 okr_data[okr]['okr_tag'], vault)
-        elif okr_data[okr]['criteria'] == CRITERIA_COUNT:
-            okr_data[okr]['data'] = filter_daily_tasks(
-                daily_notes_tasks, keywords, okr_start_date, okr_end_date)
-        elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
+        elif okr_data[okr]['criteria'] in [CRITERIA_COUNT, CRITERIA_DURATION]:
             okr_data[okr]['data'] = filter_daily_tasks(
                 daily_notes_tasks, keywords, okr_start_date, okr_end_date)
     return okr_data, okr_start_date, okr_end_date
@@ -133,7 +130,7 @@ def parse_okr_note(okr_note, vault):
                   for e in soup.findAll('h3', recursive=False)]
 
     # Get the KR Criteria, Keywords and Targets
-    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
+    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\[priority::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
 
@@ -149,13 +146,26 @@ def parse_okr_note(okr_note, vault):
         if criteria_matches[i][2] is not None:
             okr_info[okr]['target'] = float(criteria_matches[i][2].strip())
         if criteria_matches[i][3] is not None:
+            okr_info[okr]['priority'] = int(criteria_matches[i][3].strip())
+        if criteria_matches[i][4] is not None:
             okr_info[okr]['keywords'] = ast.literal_eval(
-                criteria_matches[i][3].strip())
+                criteria_matches[i][4].strip())
 
     return okr_info
 
 
 def get_habit_tracker_data(habit, criteria, start_date, vault):
+    """Get the data for tracking a habit.
+
+    Args:
+        habit (str): Habit name
+        criteria (str): Criteria used for tracking the habit
+        start_date (datetime.date): Start date for tracking the habit
+        vault (Vault): The vault object containing the daily notes.
+
+    Returns:
+        DataFrame: DataFrame object containing the data for tracking the habit.
+    """
     today = dt.date.today()
     dates = pd.date_range(start_date, today)
 

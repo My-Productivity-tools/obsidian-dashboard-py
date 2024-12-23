@@ -10,7 +10,7 @@ import dash_bootstrap_components as dbc
 import datetime as dt
 import pandas as pd
 import pickle
-from ui_utils import get_okr_graph_data, get_habit_graph_data, display_page
+from src.ui_utils import get_okr_graph_data, get_habit_graph_data, display_page
 
 # Load the environment variables
 load_dotenv()
@@ -36,6 +36,8 @@ start_dates = ['2024-11-16', '2024-11-16',
 
 # Get the data relevant for the OKR & Habit Trackers
 okr_data, okr_start_date, okr_end_date = get_okr_data(okr_note, vault)
+okrs = [k for k, v in sorted(
+    okr_data.items(), key=lambda item: item[1]['priority'])]
 okr_pivot_data = get_okr_pivot_data(
     okr_data, okr_start_date, okr_end_date)
 habit_data = {habit: get_habit_tracker_data(habit, criteria[i], dt.date.fromisoformat(
@@ -52,7 +54,7 @@ okr_layout = html.Div(children=[
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
                   figure=get_okr_graph_data(okr, okr_data, okr_pivot_data))
-        for okr in okr_pivot_data.okr.unique()
+        for okr in okrs
     ], style={'display': 'grid',
               'gap': '0px',  # Spacing between items
               # 2 columns

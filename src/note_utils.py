@@ -87,18 +87,22 @@ def convert_to_task(elem, note):
     Returns:
         dict: Dict object containing the task details.
     """
+    # TODO: Consider refactoring this function to make it more readable and maintainable
     # TODO: Add comments in this function body
     task_node = Node()
     task = {}
     task['raw_text'] = elem.text  # storing raw text
 
+    # Extract task title
     for child in elem.find_all():
         if child.name not in ['a', 'span', 'strong']:
             child.decompose()
     text = elem.get_text()
-    comment_pattern = r'%%(.+)[%%]?'
-    text = re.sub(comment_pattern, '', text, flags=re.DOTALL)
+    md_comment_pattern = r'%%(.+)[%%]?'
+    text = re.sub(md_comment_pattern, '', text, flags=re.DOTALL)
     task['title'] = text[3:].strip()
+
+    # Maps for different fields
     status_map = {
         '[ ]': 'Todo',
         '[x]': 'Done',
@@ -128,21 +132,25 @@ def convert_to_task(elem, note):
     title_words = json.dumps(task['title']).strip('"').split()
     task['fields'] = [word for word in title_words if word.startswith('\\u')]
 
+    # Priority field (Tasks Obsidian plugin)
     priority = [priority_map.get(field) for field in task['fields']
                 if field in priority_map]
     task['priority'] = priority[0] if priority else None
 
+    # Date fields (Tasks Obsidian plugin)
     date_fields_utf = [field for field in task['fields'] if field in dates_map]
     for date_field in date_fields_utf:
         task[dates_map.get(date_field)] = dt.datetime.fromisoformat(
             title_words[title_words.index(date_field)+1])
 
+    # OKR field (Dataview Obsidian plugin)
     pattern_okr = r'\(([a-zA-Z\s]+)::(.+)\)'
     matches_okr = re.findall(pattern_okr, task['title'])
     for match in matches_okr:
         task[match[0].strip()] = match[1].strip()
     task['title'] = re.sub(pattern_okr, '', task['title']).strip()
 
+    # Dataview fields (Dataview Obsidian plugin)
     pattern_dv = r'[\[\(]([a-zA-Z\s]+)::(.+)[\]\)]'
     matches_dv = re.findall(pattern_dv, task['title'])
     for match in matches_dv:
@@ -151,6 +159,7 @@ def convert_to_task(elem, note):
             val = float(val)
         task[key] = val
 
+    # Task type field
     task_types = [tag for tag in task['tags']
                   if tag in ['epic', 'story', 'task']]
     if len(task_types) == 1:
@@ -161,14 +170,13 @@ def convert_to_task(elem, note):
         print(elem)
         raise ValueError(f"Multiple task types found: {task_types}")
 
+    # Story Points field (Dataview Obsidian plugin)
     if task['type'] in ['epic', 'story']:
         task['Story Points'] = task.get('Story Points', 0)
     elif task['type'] == 'task':
         task['Story Points'] = task.get('Story Points', 1)
 
     task['file_name'] = note
-
-    # TODO: Add additional fields if required - description w/o tags & field tags
 
     task_node.data = task
     return task_node
