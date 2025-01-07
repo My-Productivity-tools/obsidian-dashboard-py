@@ -28,11 +28,6 @@ START_DATES = [date.strip() for date in os.getenv(
 # Generate the vault to use
 vault = otools.Vault(VAULT_LOC).connect().gather()
 
-# # For efficient testing & debugging - Disable in production
-# with open('all_data.pkl', 'rb') as f:
-#     vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
-#         pickle.load(f)
-
 # Get the data relevant for the OKR & Habit Trackers
 okr_data, okr_start_date, okr_end_date = get_okr_data(OKR_NOTE, vault)
 okrs = [k for k, v in sorted(
@@ -41,6 +36,11 @@ okr_pivot_data = get_okr_pivot_data(
     okr_data, okr_start_date, okr_end_date)
 habit_data = {habit: get_habit_tracker_data(habit, CRITERIA[i], dt.date.fromisoformat(
     START_DATES[i]), vault) for i, habit in enumerate(HABITS)}
+
+# # For efficient testing & debugging - Disable in production
+# with open('all_data.pkl', 'rb') as f:
+#     vault, okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data = \
+#         pickle.load(f)
 
 # Create the Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -74,31 +74,31 @@ habit_layout = html.Div(children=[
 ])
 
 # sidebar = html.Div(
-    [
-        html.H2("Navigation", className="display-4"),
-        html.Hr(),
-        dbc.Nav(
-            [
-                dbc.NavLink('OKR Tracker', href='/okr', active="exact"),
-                dbc.NavLink('Habit Tracker',
-                            href='/habit', active="exact"),
-            ],
-            vertical=True,
-            pills=True,
-        ),
-    ],
-    style = {
-        "position": "fixed",
-        "top": 0,
-        "left": 0,
-        "bottom": 0,
-        "width": "200px",
-        "padding": "20px",
-        "background-color": "#f8f9fa",
-    },
-)
+#     [
+#         html.H2("Navigation", className="display-4"),
+#         html.Hr(),
+#         dbc.Nav(
+#             [
+#                 dbc.NavLink('OKR Tracker', href='/okr', active="exact"),
+#                 dbc.NavLink('Habit Tracker',
+#                             href='/habit', active="exact"),
+#             ],
+#             vertical=True,
+#             pills=True,
+#         ),
+#     ],
+#     style = {
+#         "position": "fixed",
+#         "top": 0,
+#         "left": 0,
+#         "bottom": 0,
+#         "width": "200px",
+#         "padding": "20px",
+#         "background-color": "#f8f9fa",
+#     },
+# )
 
-app.layout= html.Div([
+app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     # sidebar,
     # html.Div(id='page-content',
@@ -123,7 +123,7 @@ def display_page_callback(pathname):
 @ app.callback(
     [Output('graph-content-habit', 'figure', allow_duplicate=True),
      Output('graph-content-habit-weekly', 'figure', allow_duplicate=True)],
-    Input('dropdown-selection', 'value'), prevent_initial_call = 'initial_duplicate'
+    Input('dropdown-selection', 'value'), prevent_initial_call='initial_duplicate'
 )
 def update_graph(value):
     return get_habit_graph_data(value, habit_data)
@@ -135,20 +135,20 @@ def update_graph(value):
     [Output('graph-content-' + okr, 'figure')
      for okr in okr_pivot_data.okr.unique()],
     [Input('reload-button', 'n_clicks'),
-     Input('dropdown-selection', 'value')], prevent_initial_call = True
+     Input('dropdown-selection', 'value')], prevent_initial_call=True
 )
 def reload_data(n_clicks, value):
     global okr_data, okr_start_date, okr_end_date, okr_pivot_data, habit_data
-    vault= otools.Vault(VAULT_LOC).connect().gather()
-    okr_data, okr_start_date, okr_end_date= get_okr_data(OKR_NOTE, vault)
-    okr_pivot_data= get_okr_pivot_data(
+    vault = otools.Vault(VAULT_LOC).connect().gather()
+    okr_data, okr_start_date, okr_end_date = get_okr_data(OKR_NOTE, vault)
+    okr_pivot_data = get_okr_pivot_data(
         okr_data, okr_start_date, okr_end_date)
-    habit_data= {habit: get_habit_tracker_data(
+    habit_data = {habit: get_habit_tracker_data(
         habit, CRITERIA[i], dt.date.fromisoformat(START_DATES[i]), vault)
         for i, habit in enumerate(HABITS)}
-    return list(get_habit_graph_data(value, habit_data)) +
+    return list(get_habit_graph_data(value, habit_data)) + \
         [get_okr_graph_data(okr, okr_data, okr_pivot_data)
-            for okr in okr_pivot_data.okr.unique()]
+         for okr in okr_pivot_data.okr.unique()]
 
 
 # Run the app
