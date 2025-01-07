@@ -11,6 +11,29 @@ import datetime as dt
 md = MarkdownIt()
 load_dotenv()
 VAULT_LOC = pathlib.Path(os.getenv('VAULT_LOC'))
+# Maps for different fields
+STATUS_MAP = {
+    '[ ]': 'Todo',
+    '[x]': 'Done',
+    '[/]': 'In Progress',
+    '[-]': 'Cancelled',
+    '[|]': 'Blocked',
+}
+PRIORITY_MAP = {  # Normal priority is when no symbol is specified
+    '\\u23ec': 'Lowest',
+    '\\ud83d\\udd3d': 'Low',
+    '\\ud83d\\udd3c': 'Medium',
+    '\\u23eb': 'High',
+    '\\ud83d\\udd3a': 'Highest'
+}
+DATES_MAP = {
+    '\\u2795': 'Created Date',
+    '\\ud83d\\udeeb': 'Started Date',
+    '\\u23f3': 'Scheduled Date',
+    '\\ud83d\\udcc5': 'Due Date',
+    '\\u2705': 'Done Date',
+    '\\u274c': 'Cancelled Date'
+}
 
 
 def parse_note_for_tasks(note, vault, okr=None):
@@ -102,30 +125,7 @@ def convert_to_task(elem, note):
     text = re.sub(md_comment_pattern, '', text, flags=re.DOTALL)
     task['title'] = text[3:].strip()
 
-    # Maps for different fields
-    status_map = {
-        '[ ]': 'Todo',
-        '[x]': 'Done',
-        '[/]': 'In Progress',
-        '[-]': 'Cancelled',
-        '[|]': 'Blocked',
-    }
-    priority_map = {  # Normal priority is when no symbol is specified
-        '\\u23ec': 'Lowest',
-        '\\ud83d\\udd3d': 'Low',
-        '\\ud83d\\udd3c': 'Medium',
-        '\\u23eb': 'High',
-        '\\ud83d\\udd3a': 'Highest'
-    }
-    dates_map = {
-        '\\u2795': 'Created Date',
-        '\\ud83d\\udeeb': 'Started Date',
-        '\\u23f3': 'Scheduled Date',
-        '\\ud83d\\udcc5': 'Due Date',
-        '\\u2705': 'Done Date',
-        '\\u274c': 'Cancelled Date'
-    }
-    task['status'] = status_map.get(text[:3], None)
+    task['status'] = STATUS_MAP.get(text[:3], None)
 
     task['tags'] = [word.strip('#') for word in task['title'].split()
                     if word.startswith('#')]
@@ -133,14 +133,14 @@ def convert_to_task(elem, note):
     task['fields'] = [word for word in title_words if word.startswith('\\u')]
 
     # Priority field (Tasks Obsidian plugin)
-    priority = [priority_map.get(field) for field in task['fields']
-                if field in priority_map]
+    priority = [PRIORITY_MAP.get(field) for field in task['fields']
+                if field in PRIORITY_MAP]
     task['priority'] = priority[0] if priority else None
 
     # Date fields (Tasks Obsidian plugin)
-    date_fields_utf = [field for field in task['fields'] if field in dates_map]
+    date_fields_utf = [field for field in task['fields'] if field in DATES_MAP]
     for date_field in date_fields_utf:
-        task[dates_map.get(date_field)] = dt.datetime.fromisoformat(
+        task[DATES_MAP.get(date_field)] = dt.datetime.fromisoformat(
             title_words[title_words.index(date_field)+1])
 
     # OKR field (Dataview Obsidian plugin)

@@ -23,11 +23,11 @@ CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 vault = otools.Vault(VAULT_LOC).connect().gather()
 
 # Define the requirements for the OKR & Habit Tracker
-okr_note = '2024 Dec'
-habits = ['#gratitude', 'gratitude', 'self-compassion']
-criteria = [CRITERIA_COUNT, CRITERIA_COUNT, CRITERIA_DURATION]
+okr_note = '2025 Jan - 1'
+habits = ['#gratitude', 'gratitude', 'self-compassion', 'jala neti']
+criteria = [CRITERIA_COUNT, CRITERIA_COUNT, CRITERIA_DURATION, CRITERIA_COUNT]
 start_dates = ['2024-11-16', '2024-11-16',
-               '2024-02-23']  # Start dates for each habit
+               '2024-02-23', '2023-10-20']  # Start dates for each habit
 
 # # For efficient testing & debugging - Disable in production
 # with open('all_data.pkl', 'rb') as f:
