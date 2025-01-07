@@ -20,7 +20,7 @@ CRITERIA_COUNT = os.getenv('CRITERIA_COUNT')
 CRITERIA_DURATION = os.getenv('CRITERIA_DURATION')
 
 
-def get_okr_chart_data(okr_data, okr_start_date, okr_end_date):
+def get_okr_pivot_data(okr_data, okr_start_date, okr_end_date):
     """Get the chart data for a specific OKR cycle.
 
     Args:
@@ -31,36 +31,40 @@ def get_okr_chart_data(okr_data, okr_start_date, okr_end_date):
         DataFrame: DataFrame object containing the chart data for the OKR cycle.
     """
     date_list = pd.date_range(okr_start_date, okr_end_date)
-    chart_data = pd.DataFrame(
+    today = dt.datetime.today()
+    pivot_data = pd.DataFrame(
         list(product(okr_data.keys(), date_list)), columns=['okr', 'date'])
 
     for okr in okr_data.keys():
         score_list = []
+        node_list = okr_data[okr]['data'].all_nodes()[1:]
         if okr_data[okr]['criteria'] == CRITERIA_COUNT:
-            for date in date_list:
-                score_list.append(len([n for n in okr_data[okr]['data'].all_nodes(
-                )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
+            for date in date_list[date_list <= today]:
+                score_list.append(
+                    len([n for n in node_list if n.data['file_name_date'] == date.date()]))
         elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
-            for date in date_list:
-                score_list.append(sum([n.data['duration'] for n in okr_data[okr]['data'].all_nodes(
-                )[1:] if dt.datetime.fromisoformat(n.data['file_name'].split()[0]) == date]))
+            for date in date_list[date_list <= today]:
+                score_list.append(sum([n.data.get(
+                    'duration', 0) for n in node_list if n.data['file_name_date'] == date.date()]))
         elif okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
-            for date in date_list:
-                score_list.append(sum([n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[
-                                  1:] if 'Done Date' in n.data and n.data['Done Date'] == date]))
+            for date in date_list[date_list <= today]:
+                score_list.append(sum([n.data.get('Story Points', 0) for
+                                       n in node_list if 'Done Date' in n.data
+                                       and n.data['Done Date'] == date.date() and
+                                       n.data['status'] != 'Cancelled']))
             okr_data[okr]['target'] = sum(
-                [n.data['Story Points'] for n in okr_data[okr]['data'].all_nodes()[1:]])
+                [n.data.get('Story Points') for n in node_list if n.data['status'] != 'Cancelled'])
 
-            # TODO: Address Cancelled tasks
-        chart_data.loc[chart_data['okr'] == okr, 'score'] = score_list
-        chart_data.loc[chart_data['okr'] == okr, 'target'] = [
+        pivot_data.loc[pivot_data['okr'] == okr, 'score'] = score_list + \
+            [None] * (len(date_list) - len(score_list))
+        pivot_data.loc[pivot_data['okr'] == okr, 'target'] = [
             ((i+1) * okr_data[okr]['target']) / len(date_list) for i, date in enumerate(date_list)]
 
-    chart_data['score'] = chart_data.groupby(
+    pivot_data['score'] = pivot_data.groupby(
         'okr')['score'].transform(pd.Series.cumsum)
-    chart_data['target_70_pct'] = chart_data['target'] * 0.7
+    pivot_data['target_70_pct'] = pivot_data['target'] * 0.7
 
-    return chart_data
+    return pivot_data
 
 
 def get_okr_data(okr_note, vault):
@@ -89,10 +93,7 @@ def get_okr_data(okr_note, vault):
         if okr_data[okr]['criteria'] == CRITERIA_STORY_POINTS:
             okr_data[okr]['data'] = get_kr_tagged_tasks(
                 okr_data[okr]['okr_tag'], vault)
-        elif okr_data[okr]['criteria'] == CRITERIA_COUNT:
-            okr_data[okr]['data'] = filter_daily_tasks(
-                daily_notes_tasks, keywords, okr_start_date, okr_end_date)
-        elif okr_data[okr]['criteria'] == CRITERIA_DURATION:
+        elif okr_data[okr]['criteria'] in [CRITERIA_COUNT, CRITERIA_DURATION]:
             okr_data[okr]['data'] = filter_daily_tasks(
                 daily_notes_tasks, keywords, okr_start_date, okr_end_date)
     return okr_data, okr_start_date, okr_end_date
@@ -128,8 +129,8 @@ def parse_okr_note(okr_note, vault):
     kr_matches = [re.search(kr_pattern, e.text)
                   for e in soup.findAll('h3', recursive=False)]
 
-    # Get the KR Criteria, Keywords and Targets  # TODO: Targets not done yet
-    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
+    # Get the KR Criteria, Keywords and Targets
+    criteria_pattern = r'\[criteria::(.+?)\]\s*(?:\[target::(.+?)\])?\s*(?:\[priority::(.+?)\])?\s*(?:\(keywords::(.+?)\))?'
     criteria_matches = [re.search(
         criteria_pattern, e.next_sibling.next_sibling.text) for e in kr_elem_matches]
 
@@ -145,10 +146,42 @@ def parse_okr_note(okr_note, vault):
         if criteria_matches[i][2] is not None:
             okr_info[okr]['target'] = float(criteria_matches[i][2].strip())
         if criteria_matches[i][3] is not None:
+            okr_info[okr]['priority'] = int(criteria_matches[i][3].strip())
+        if criteria_matches[i][4] is not None:
             okr_info[okr]['keywords'] = ast.literal_eval(
-                criteria_matches[i][3].strip())
+                criteria_matches[i][4].strip())
 
     return okr_info
+
+
+def get_habit_tracker_data(habit, criteria, start_date, vault):
+    """Get the data for tracking a habit.
+
+    Args:
+        habit (str): Habit name
+        criteria (str): Criteria used for tracking the habit
+        start_date (datetime.date): Start date for tracking the habit
+        vault (Vault): The vault object containing the daily notes.
+
+    Returns:
+        DataFrame: DataFrame object containing the data for tracking the habit.
+    """
+    today = dt.date.today()
+    dates = pd.date_range(start_date, today)
+
+    daily_notes_tasks = get_daily_notes_tasks(vault)
+    habit_tasks = filter_daily_tasks(
+        daily_notes_tasks, [habit], start_date, today)
+    if criteria == CRITERIA_COUNT:
+        scores = [len([n for n in habit_tasks.all_nodes()[1:]
+                      if n.data['file_name_date'] == date.date()]) for date in dates]
+    elif criteria == CRITERIA_DURATION:
+        scores = [sum([n.data.get('duration', 0) for n in habit_tasks.all_nodes()[
+                      1:] if n.data['file_name_date'] == date.date()]) for date in dates]
+
+    scores_df = pd.DataFrame({'date': dates, 'score': scores})
+    scores_df['week'] = scores_df['date'].dt.to_period('W').dt.start_time
+    return scores_df
 
 
 # Functions to get the KR data for different KR criteria types
@@ -198,15 +231,16 @@ def get_daily_notes_tasks(vault):
 
     # Extract duration from all events
     for task in tasks.all_nodes()[1:]:
-        title = task.data['title']
-        date_string = task.data['file_name'].split(' ')[0]
-        event_data = read_event(date_string, title)
+        date_string = task.data['file_name'].split()[0]
+        task.data['file_name_date'] = dt.date.fromisoformat(date_string)
+        event_data = read_event(date_string, task.data['title'])
         if event_data is not None:
             task.data.update(event_data)
 
     return tasks
 
 
+# This belongs to a task_utils.py file if it existed
 def read_event(date_string, title):
     """Read the event start, end date-times from the title of a task if it is an event.
 
