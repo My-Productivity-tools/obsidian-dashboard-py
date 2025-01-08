@@ -45,6 +45,7 @@ habit_data = {habit: get_habit_tracker_data(habit, CRITERIA[i], dt.date.fromisof
 # Create the Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "My Productivity Dashboard"
+server = app.server
 
 # Define the layout
 okr_layout = html.Div(children=[
@@ -153,6 +154,9 @@ def reload_data(n_clicks, value):
 
 # Run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    if os.getenv('ENV') == 'production':
+        app.run(debug=False)
+    else:
+        app.run(debug=True)
 
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages
