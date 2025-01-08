@@ -25,6 +25,9 @@ CRITERIA = [criterion.strip()
 START_DATES = [date.strip() for date in os.getenv(
     'START_DATES').split(',')]  # Start dates for each habit
 
+ENV = os.getenv('ENV')
+PATH_PREFIX = os.getenv('PATH_PREFIX')
+
 # Generate the vault to use
 vault = otools.Vault(VAULT_LOC).connect().gather()
 
@@ -43,7 +46,9 @@ habit_data = {habit: get_habit_tracker_data(habit, CRITERIA[i], dt.date.fromisof
 #         pickle.load(f)
 
 # Create the Dash app
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
+           requests_pathname_prefix="PATH_PREFIX",
+           routes_pathname_prefix="PATH_PREFIX")
 app.title = "My Productivity Dashboard"
 server = app.server
 
@@ -154,7 +159,7 @@ def reload_data(n_clicks, value):
 
 # Run the app
 if __name__ == '__main__':
-    if os.getenv('ENV') == 'production':
+    if ENV == 'production':
         app.run(debug=False)
     else:
         app.run(debug=True)
