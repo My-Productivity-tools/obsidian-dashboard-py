@@ -47,8 +47,8 @@ habit_data = {habit: get_habit_tracker_data(habit, CRITERIA[i], dt.date.fromisof
 
 # Create the Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
-           requests_pathname_prefix="PATH_PREFIX",
-           routes_pathname_prefix="PATH_PREFIX")
+           requests_pathname_prefix=PATH_PREFIX,
+           routes_pathname_prefix=PATH_PREFIX)
 app.title = "My Productivity Dashboard"
 server = app.server
 
