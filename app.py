@@ -25,6 +25,9 @@ CRITERIA = [criterion.strip()
 START_DATES = [date.strip() for date in os.getenv(
     'START_DATES').split(',')]  # Start dates for each habit
 
+ENV = os.getenv('ENV')
+PATH_PREFIX = os.getenv('PATH_PREFIX')
+
 # Generate the vault to use
 vault = otools.Vault(VAULT_LOC).connect().gather()
 
@@ -43,13 +46,16 @@ habit_data = {habit: get_habit_tracker_data(habit, CRITERIA[i], dt.date.fromisof
 #         pickle.load(f)
 
 # Create the Dash app
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
+           requests_pathname_prefix=PATH_PREFIX,
+           routes_pathname_prefix=PATH_PREFIX)
 app.title = "My Productivity Dashboard"
+server = app.server
 
 # Define the layout
 okr_layout = html.Div(children=[
     html.H1('OKR Tracker - ' + OKR_NOTE, style={'textAlign': 'center'}),
-    dcc.Link('Go to Habit Tracker', href='/habit'),
+    dcc.Link('Go to Habit Tracker', href=f'{PATH_PREFIX}/habit'),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
                   figure=get_okr_graph_data(okr, okr_data, okr_pivot_data))
@@ -65,7 +71,7 @@ okr_layout = html.Div(children=[
 
 habit_layout = html.Div(children=[
     html.H1("Habit Tracker", style={'textAlign': 'center'}),
-    dcc.Link('Go to OKR Tracker', href='/okr'),
+    dcc.Link('Go to OKR Tracker', href=f'{PATH_PREFIX}/okr'),
     html.Div(children=[
         dcc.Dropdown(HABITS, HABITS[0], id='dropdown-selection'),
     ]),
@@ -79,9 +85,9 @@ habit_layout = html.Div(children=[
 #         html.Hr(),
 #         dbc.Nav(
 #             [
-#                 dbc.NavLink('OKR Tracker', href='/okr', active="exact"),
+#                 dbc.NavLink('OKR Tracker', href=f'{PATH_PREFIX}/okr', active="exact"),
 #                 dbc.NavLink('Habit Tracker',
-#                             href='/habit', active="exact"),
+#                             href=f'{PATH_PREFIX}/habit', active="exact"),
 #             ],
 #             vertical=True,
 #             pills=True,
@@ -117,7 +123,7 @@ app.layout = html.Div([
     Input('url', 'pathname')
 )
 def display_page_callback(pathname):
-    return display_page(pathname)
+    return display_page(pathname.replace(PATH_PREFIX, '/'))
 
 
 @ app.callback(
@@ -153,6 +159,9 @@ def reload_data(n_clicks, value):
 
 # Run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    if ENV == 'production':
+        app.run(debug=False)
+    else:
+        app.run(debug=True)
 
 # TODO: Description of the first 3 PRs contain info missing from their respective merge commit messages
