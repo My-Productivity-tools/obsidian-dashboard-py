@@ -137,7 +137,6 @@ def parse_okr_note(okr_note, vault):
     # Create okr_info
     okr_info = {}
     for i, match in enumerate(kr_matches):
-        print(i)
         okr = match[1] + ' ' + match[2] + ' ' + match[3].strip()
         okr_info[okr] = {'obj_key': match[1], 'obj_name': obj_map[match[1]],
                          'kr_key': match[2], 'kr_name': match[3].strip(),
@@ -199,7 +198,6 @@ def get_kr_tagged_tasks(okr_tag, vault):
     tasks = Tree()
     tasks.create_node("Master Root", 'master_root')
     for note in vault.md_file_index.keys():
-        print(note)
         if note_metadata.loc[note_metadata.index == note, 'note_exists'].iloc[0]:
             note_tasks = parse_note_for_tasks(note, vault, okr_tag)
             tasks.paste('master_root', note_tasks)
@@ -221,7 +219,6 @@ def get_daily_notes_tasks(vault):
     tasks = Tree()
     tasks.create_node("Master Root", 'master_root')
     for note in vault.md_file_index.keys():
-        print(note)
         note_path = note_metadata.loc[note_metadata.index ==
                                       note, 'abs_filepath'].iloc[0]
         if note_path.is_relative_to(DAILY_NOTES_LOC):

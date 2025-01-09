@@ -123,7 +123,7 @@ app.layout = html.Div([
     Input('url', 'pathname')
 )
 def display_page_callback(pathname):
-    return display_page(pathname)
+    return display_page(pathname.replace(PATH_PREFIX, '/'))
 
 
 @ app.callback(
