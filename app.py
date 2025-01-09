@@ -55,7 +55,7 @@ server = app.server
 # Define the layout
 okr_layout = html.Div(children=[
     html.H1('OKR Tracker - ' + OKR_NOTE, style={'textAlign': 'center'}),
-    dcc.Link('Go to Habit Tracker', href='/habit'),
+    dcc.Link('Go to Habit Tracker', href=f'{PATH_PREFIX}/habit'),
     html.Div(children=[
         dcc.Graph(id='graph-content-' + okr,
                   figure=get_okr_graph_data(okr, okr_data, okr_pivot_data))
@@ -71,7 +71,7 @@ okr_layout = html.Div(children=[
 
 habit_layout = html.Div(children=[
     html.H1("Habit Tracker", style={'textAlign': 'center'}),
-    dcc.Link('Go to OKR Tracker', href='/okr'),
+    dcc.Link('Go to OKR Tracker', href=f'{PATH_PREFIX}/okr'),
     html.Div(children=[
         dcc.Dropdown(HABITS, HABITS[0], id='dropdown-selection'),
     ]),
@@ -85,9 +85,9 @@ habit_layout = html.Div(children=[
 #         html.Hr(),
 #         dbc.Nav(
 #             [
-#                 dbc.NavLink('OKR Tracker', href='/okr', active="exact"),
+#                 dbc.NavLink('OKR Tracker', href=f'{PATH_PREFIX}/okr', active="exact"),
 #                 dbc.NavLink('Habit Tracker',
-#                             href='/habit', active="exact"),
+#                             href=f'{PATH_PREFIX}/habit', active="exact"),
 #             ],
 #             vertical=True,
 #             pills=True,
